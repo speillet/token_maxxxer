@@ -69,3 +69,10 @@ def test_quoted_multiline_credential_is_redacted_entirely() -> None:
     for output in (result.text, result.stdout, result.model_dump_json()):
         assert "fixture-secret" not in output
         assert "continuation-private" not in output
+
+
+@pytest.mark.parametrize(
+    "credential", ["sk-legacy-fixture", "github_pat_fixture_value", "ghp_fixture_value"]
+)
+def test_credentials_from_other_providers_are_redacted(credential) -> None:
+    assert credential not in redact("response contains " + credential)

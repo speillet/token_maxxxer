@@ -20,6 +20,7 @@ def test_paths_are_relative_to_source_even_for_defaults(config_path: Path, monke
     config = load_config(config_path)
     assert config.repositories.allowed == (config_path.parent,)
     assert config.storage.database == config_path.parent / "var/token_maxxxer.sqlite"
+    assert config.authentication.env_file == config_path.parent / ".env"
     assert config.schedule.windows[0].duration_seconds() == 9 * 3600
     assert not (config_path.parent / "var").exists()
 
@@ -35,6 +36,14 @@ def test_paths_are_relative_to_source_even_for_defaults(config_path: Path, monke
         ("execution", {"task_timeout_minutes": True}, "task_timeout_minutes"),
         ("git", {"auto_merge": True}, "auto_merge"),
         ("authentication", {"mode": "claude_subscription"}, "mode"),
+        ("provider", {"name": "unknown", "model": "fixture"}, "name"),
+        ("provider", {"name": "claude"}, "model"),
+        ("provider", {"name": "openai", "model": " "}, "model"),
+        (
+            "provider",
+            {"name": "claude", "model": "fixture", "max_output_tokens": 0},
+            "max_output_tokens",
+        ),
         ("storage", {"database": "same", "checkpoints": "same"}, "distinctes"),
         ("unexpected", "secret-value", "Extra inputs"),
     ],

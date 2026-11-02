@@ -15,14 +15,15 @@ commits précédents restent des points de retour historiques.
 
 | Jalon | État | Preuves / suite |
 | --- | --- | --- |
-| 0 — Abonnement | Partiel | Contrat documentaire ; CLI absent de cette machine, validation du compte et appel réel à faire |
+| 0 — Fournisseurs API | Contrats définis, pilote réel ouvert | Clés API Claude/OpenAI ; aucun abonnement CLI requis, compte réel non sollicité |
 | 1 — Socle Python | Socle livré | Configuration, modèles, SQLite, CLI en lecture/simulation et tests locaux ; modules d'exécution aux jalons suivants |
-| 2 — Exécuteur | Livré hors ligne, pilote ouvert | Résultat normalisé, faux exécuteur et transport subprocess ; qualification réelle et pause durable toujours ouvertes |
+| 2 — Génération API | Implémentée, testée sur HTTP simulé | Claude et OpenAI derrière Provider ; Copilot à implémenter ; aucun agent modifiant du code raccordé |
 | 3 à 7 | À faire | Suivre `roadmap.md` ; aucune exécution Claude réelle dans ce lot |
 
-Le socle se développe hors ligne pendant que la validation opérationnelle du
-jalon 0 reste ouverte. Le chemin d'exécution abonnement ne sera pas activé avant
-cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
+Les validations utilisent des transports simulés et ne consomment pas les clés
+réelles. L'ancien parcours abonnement n'est plus le cadrage principal. Les
+générations API ne valident pas une tâche Git ; les outils et vérifications
+arrivent au jalon 3. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 
 ## Points de retour
 
@@ -44,8 +45,10 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | CP-013 | `7195818` | Décodeur JSON unique, doublons refusés avant expurgation, credentials multilignes supprimés | 156 tests, Ruff, mypy et build ; constats Standards et Spec revérifiés et fermés |
 | CP-014 | `0342492` | Convention de référence locale au gestionnaire de credentials, exemple sans secret et livraison exécuteur | `.env` ignoré par Git et permissions locales 0600 ; aucune clé dans les fichiers suivis |
 | CP-015 | `f887f88` | Dernière révision de la PR #2, avant nouveau cadrage | Point de retour du nom et de l'ancien parcours abonnement |
-| CP-016 | Commit `refactor!: rename package and CLI to token_maxxxer` | Nom cohérent du paquet, commande, exemples, stockage par défaut et références publiques | Suite existante et outils de qualité après renommage |
-| CP-017 | Commit `feat(api): add Claude and OpenAI providers with private credentials` | Interface Provider, SDK API, query explicite, doctor sans CLI, références de credentials résolues à la demande | Transports HTTP simulés, limites, erreurs sans relance, clés absentes et diagnostic sans lecture de secret |
+| CP-016 | `48ee353` | Nom cohérent du paquet, commande, exemples, stockage par défaut et références publiques | 156 tests et outils de qualité après renommage |
+| CP-017 | `e923570` | Interface Provider, SDK API, query explicite, doctor sans CLI, références de credentials résolues à la demande | 194 tests, transports HTTP simulés, limites, erreurs sans relance et références privées |
+| CP-018 | Commit `test(api): validate provider selection and credential masking` | Bornes de configuration fournisseur, chemin des références et masquage Claude/OpenAI/GitHub | 201 tests sur la suite complète |
+| CP-019 | Commit `docs: align roadmap and provider contracts with API-based execution` | README et roadmap API, contrat multi-fournisseurs et ancien contrat CLI archivé | Documentation des limites et des commandes réellement disponibles |
 
 ## Livraison du socle
 
@@ -66,6 +69,8 @@ Pour retrouver son SHA : `git log --oneline --all`. Les commits portent une seul
 responsabilité et utilisent Conventional Commits.
 
 ## Livraison de l'exécuteur hors ligne
+
+Historique de la PR #2, antérieur au cadrage API actuel :
 
 - Branche : `feat/claude-runner`, basée sur la PR #1 encore ouverte.
 - PR : [#2 — transport CLI qualifié et tests hors ligne](https://github.com/speillet/token_maxxxer/pull/2).
@@ -101,9 +106,8 @@ ces données locales si leur suppression ou leur rotation est nécessaire.
 
 ## Prochaine reprise
 
-1. Consulter les PR du socle et de l'exécuteur ainsi que leurs résultats CI.
-2. Installer/identifier le CLI officiel, vérifier la connexion abonnement et les
-   crédits supplémentaires dans le compte, puis consigner un appel minimal.
-3. Préparer le jalon 3 : worktree Git autorisé, audit, vérifications ; raccorder
-   ensuite la commande réelle seulement si la qualification du jalon 0 est acquise.
-4. Ajouter la pause durable d'authentification avec le workflow du jalon 4.
+1. Consulter la PR du renommage et des fournisseurs API, ainsi que ses contrôles CI.
+2. Qualifier les comptes avec des clés renouvelées lors d'un appel explicitement voulu.
+3. Construire les outils et worktrees du jalon 3 avant de raccorder run --once.
+4. Ajouter l'adaptateur Copilot SDK avec son authentification GitHub officielle.
+5. Raccorder workflow durable, pauses et planning aux jalons suivants.
