@@ -1,10 +1,11 @@
 # token_maxxxer
 
-A local development-task toolkit with configurable AI providers: **Claude API**,
-**OpenAI API**, and a planned **GitHub Copilot SDK** integration.
+Run bounded AI coding skills on your local repositories overnight: isolated Git
+worktrees, approved checks, Claude/OpenAI APIs, nothing merged automatically.
 
 The repository, Python package, and command are named `token_maxxxer`.
-Python 3.11+, macOS and Linux. [Roadmap](roadmap.md) · [Checkpoints and rollbacks](checkpoint.md).
+Python 3.11+, macOS and Linux. Providers: **Claude API**, **OpenAI API**, and a
+planned **GitHub Copilot SDK** integration. See the [documentation](#documentation).
 
 ## Current capabilities
 
@@ -15,13 +16,41 @@ Python 3.11+, macOS and Linux. [Roadmap](roadmap.md) · [Checkpoints and rollbac
 | Read-only diagnostics, task listing, and previews | Available |
 | Claude and OpenAI text generation | Available through `query`; tested with simulated HTTP |
 | Private credential references | Available |
+| Interactive repository picker and recent local-path history | Available |
+| Repository/user skills and built-in code review/improvement | Available |
+| Bounded overnight skill sessions in isolated Git worktrees | Available; approved checks, reports, no automatic merge |
 | GitHub Copilot | Planned; selecting it returns an explicit unsupported-provider error |
-| Code-editing agent, Git worktrees, and task verification | Planned |
+| Execution of imported queue tasks | Planned; queue previews remain read-only |
 | Durable workflow, scheduling, and system services | Planned |
 
 `query` returns generated text. It does not read or edit a repository, run local
 commands, or mark a task as successful. Tests use simulated responses and do not
 verify access to a real provider account or incur API charges.
+
+## Start an overnight session
+
+```bash
+uv sync --locked
+uv run token_maxxxer
+```
+
+With no subcommand, the CLI opens an interactive picker: choose a local
+repository, a skill, the provider/model, a maximum duration, a call limit and an
+optional verification command. The equivalent explicit invocation is:
+
+```bash
+# Global options precede the subcommand. Use a clean Git repository.
+uv run token_maxxxer --config examples/token_maxxxer.yaml night /path/to/repo \
+  --skill builtin:improve-code --hours 8 --max-calls 100 \
+  --verify 'uv run pytest -q' --dry-run
+```
+
+Remove `--dry-run` to confirm interactively, or replace it with `--yes` to start.
+Each session works in its own `token_maxxxer/night-*` branch and worktree; the
+selected working tree is preserved, and changed work always needs human review.
+Repository code and checks must be trusted: a worktree is Git isolation, not an
+operating-system sandbox. The [overnight session guide](docs/night-cli.md)
+covers the picker, tool scope, limits, session records and review.
 
 ## Install and inspect
 
@@ -92,9 +121,11 @@ TOKEN_MAXXXER_CLAUDE_CREDENTIAL_REF=keychain://token_maxxxer.claude.api/token_ma
 ```
 
 The service and account identify entries in macOS Keychain. Existing references
-remain valid even when they use an older service identifier. `query` retrieves
-only the selected provider's credential, immediately before its explicit API
-request. On Linux, supply the key through the process environment; macOS
+remain valid even when they use an older service identifier. `query` and confirmed
+`night` sessions retrieve only the selected provider's credential. Without a
+configuration file, `night` uses the current directory's `.env` (or `--env-file`)
+and remembers that reference-file path with the provider profile.
+On Linux, supply the key through the process environment; macOS
 Keychain references are not supported there.
 
 The `.env` reader handles known references without executing the file,
@@ -152,22 +183,25 @@ src/token_maxxxer/
 ├── results.py                # shared generation results and public diagnostics
 ├── queue.py, storage.py       # atomic imports and versioned SQLite
 ├── cli.py, doctor.py          # user commands and read-only diagnostics
+├── repositories.py, skills.py # local discovery, recent paths and skill instructions
+├── night.py, night_cli.py     # isolated overnight sessions and interactive selection
+├── file_tools.py              # bounded file operations in the selected worktree
+├── verification.py            # approved commands and process-group cancellation
+├── local_state.py             # private atomic history and session records
 └── json_io.py, redaction.py   # strict JSON handling and credential redaction
 ```
 
-The retired subscription CLI transport, subprocess runner, wire parser, fixtures,
-and archived CLI contract have been removed. Their history remains available
-through Git checkpoints. LangGraph, LangChain Core, and a graph checkpointer
-will be installed when the durable workflow is implemented, rather than kept as
-unused dependencies. The application database and future workflow checkpoints
-have separate configured locations.
+LangGraph, LangChain Core, and a graph checkpointer will be installed when the
+durable workflow is implemented, rather than kept as unused dependencies. The
+application database and future workflow checkpoints have separate configured
+locations.
 
 Copilot will use the same `Provider` interface with its official SDK and GitHub
 authentication. `provider.name: copilot` is recognized but rejected until that
 adapter is implemented. No private Copilot endpoint or implicit reuse of `gh`
-credentials is used. See [provider contracts](docs/providers.md).
+credentials is used.
 
-## Development and migration
+## Development
 
 ```bash
 uv run ruff format --check
@@ -178,16 +212,16 @@ uv build --no-sources
 ```
 
 Tests use simulated HTTP and temporary repositories. CI covers Python 3.11 and
-3.13 on macOS and Linux. See [CONTRIBUTING.md](CONTRIBUTING.md).
-All maintained documentation, code messages, examples, and test descriptions
-are written in English. Prompts and generated responses may use any language.
+3.13 on macOS and Linux. All maintained documentation, code messages, examples,
+and test descriptions are written in English. Prompts and generated responses
+may use any language.
 
-From the prototype, update imports, commands, and configuration to
-`token_maxxxer`, add `provider`, and set `authentication.mode` to `api_key`.
-Credential reference variables use the `TOKEN_MAXXXER_` prefix. The shared
-result type is now `GenerationResult`; `response_id` replaces the misleading
-`session_id`, and unused subprocess fields have been removed.
+## Documentation
 
-No local data or Keychain entry is automatically renamed or deleted. To retain
-an existing database, keep its explicit path in `storage.database`; its SQLite
-application ID and schema remain compatible. Back up local data separately.
+| Document | Contents |
+| --- | --- |
+| [docs/night-cli.md](docs/night-cli.md) | Overnight sessions: picker, explicit invocation, tool scope, limits, records and review |
+| [docs/providers.md](docs/providers.md) | Provider contract, result statuses, credentials and official API references |
+| [docs/roadmap.md](docs/roadmap.md) | Milestones and remaining work |
+| [docs/checkpoint.md](docs/checkpoint.md) | Delivery history, rollback points, procedure and prototype migration |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Development standards, checks, pull requests and rollbacks |

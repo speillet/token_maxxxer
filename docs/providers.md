@@ -2,8 +2,10 @@
 
 `Provider.generate(GenerationRequest, SecretStr)` returns a `GenerationResult`.
 Request settings include the selected provider, explicit model, output-token
-limit, and HTTP timeout. `query` generates text; code-editing tools and task
-verification belong to milestone 3.
+limit, and HTTP timeout. `query` generates text. `night` builds its typed JSON
+file-tool protocol on this same text interface; the SDK's native tool-call blocks
+remain unsupported by the text adapter. Night sessions have a separate global
+deadline, call-count limit and approved verification commands.
 
 ## Implementations
 
@@ -44,8 +46,9 @@ Resolve the selected provider's process key first, then its
 reference. The reader does not mutate `os.environ` or interpolate values, and
 rejects plaintext API keys in `.env`.
 
-macOS references use `keychain://service/account`. Only an explicit `query`
-retrieves the value through the system tool, with a timeout and no secret output.
+macOS references use `keychain://service/account`. An explicit `query` or confirmed
+`night` session retrieves the selected value through the system tool, with a
+timeout and no secret output. Night previews never retrieve it.
 `doctor` only checks configuration. Linux currently supports process environment
 keys. A reference is not a secret and never creates a Keychain entry itself.
 
@@ -63,4 +66,4 @@ keys. A reference is not a secret and never creates a Keychain entry itself.
   the official SDK without private endpoints or implicit `gh auth` credentials.
 
 The abandoned subscription CLI implementation is available only in Git history;
-see checkpoint CP-015 in [checkpoint.md](../checkpoint.md) when investigating it.
+see checkpoint CP-015 in [checkpoint.md](checkpoint.md) when investigating it.

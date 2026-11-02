@@ -43,14 +43,31 @@ explicit and an error never switches the selected provider.
 
 ## 3 — Code agent, Git isolation, and verification
 
-- [ ] Build the provider-backed loop for typed development tools.
-- [ ] Restrict reading, writing, and commands to explicitly approved operations.
+- [x] Build the provider-backed loop for typed file tools in foreground night sessions.
+- [x] Restrict reads/writes and expose only user-approved verification commands.
 - [ ] Prepare a stable task branch and worktree from an explicit Git base.
-- [ ] Preserve the main working tree and reject branch or path collisions.
-- [ ] Run configured verification commands with timeouts and separate logs.
-- [ ] Retain diffs, failures, and unverified work.
+- [x] Isolate night sessions from the original working tree with unique branches/worktrees.
+- [x] Run approved verification with timeouts, bounded logs and process-group cleanup.
+- [x] Retain night-session worktrees, failures and unverified changes for review.
 - [ ] Use needs_review for human acceptance criteria; never merge automatically.
 - [ ] Connect run --once only after these controls and a reversible pilot.
+
+### Interactive overnight CLI
+
+- [x] Pick a discovered local repository or enter a local path/file URL.
+- [x] Suggest recent canonical paths from private local history.
+- [x] Discover repository/user SKILL.md instructions and offer built-in skills.
+- [x] Support explicit skill selection and deterministic local suggestions.
+- [x] Repeat useful skill cycles within a duration and API-call ceiling.
+- [x] Preview without credential resolution, API access or file creation.
+- [x] Persist session records and reports; inspect active or interrupted sessions.
+- [x] Stop on deadline, signals, call limit, completion or provider failure.
+
+`night` starts immediately in the foreground and marks edited work as needing
+review. It never commits, pushes or merges selected-repository changes. The
+original queue's stable task branches and acceptance workflow remain separate
+work. Skills use the supported typed tools; external plugins and arbitrary shell
+commands are not installed or executed. See [the session contract](night-cli.md).
 
 ## 4 — Durable workflow and recovery
 
@@ -61,6 +78,10 @@ explicit and an error never switches the selected provider.
 - [ ] Add atomic acquisition, a local service lock, and pause/resume/cancel commands.
 - [ ] Pause expired authentication and require review of ambiguous executions.
 - [ ] Test crashes before launch, during work, and after results; observe no duplicate launches.
+
+Foreground night sessions already journal API attempts and approved checks,
+use a per-repository lock, and preserve interrupted work. They do not implement
+workflow replay, durable resume or automatic crash recovery.
 
 ## 5 — Scheduling, quota handling, and budgets
 
