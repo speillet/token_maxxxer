@@ -22,24 +22,28 @@ class ProcessCapture:
     invalid_encoding: bool = False
 
 
-def _signal_group(pid: int, signum: int) -> bool:
+def _signal_group(process: subprocess.Popen[bytes], signum: int) -> bool:
     try:
-        os.killpg(pid, signum)
+        os.killpg(process.pid, signum)
     except ProcessLookupError:
+        return False
+    except PermissionError:
+        # macOS returns EPERM for a group containing only a terminated, unreaped
+        # leader. Do not hide a permission failure while the leader is still alive.
+        if process.poll() is None:
+            raise
         return False
     return True
 
 
 def _stop_group(process: subprocess.Popen[bytes], grace_seconds: float) -> None:
-    if _signal_group(process.pid, signal.SIGTERM):
+    if _signal_group(process, signal.SIGTERM):
         deadline = time.monotonic() + grace_seconds
         while time.monotonic() < deadline:
-            # Reap the leader while also giving its descendants time to terminate.
-            process.poll()
-            if not _signal_group(process.pid, 0):
+            if not _signal_group(process, 0):
                 break
             time.sleep(min(0.01, max(0, deadline - time.monotonic())))
-        _signal_group(process.pid, signal.SIGKILL)
+        _signal_group(process, signal.SIGKILL)
     process.wait(timeout=5)
 
 

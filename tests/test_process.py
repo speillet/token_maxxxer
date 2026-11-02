@@ -3,10 +3,11 @@ import signal
 import subprocess
 import sys
 import time
+from unittest.mock import Mock
 
 import pytest
 
-from nightshift.process import run_process
+from nightshift.process import _signal_group, run_process
 
 
 def test_prompt_and_arguments_are_literal_without_a_shell(tmp_path) -> None:
@@ -86,6 +87,25 @@ def test_keyboard_interrupt_still_cleans_up_the_process(tmp_path, monkeypatch) -
     assert started_process is not None
     assert started_process.poll() is not None
     assert not is_active(started_process.pid)
+
+
+@pytest.mark.parametrize("exit_code", [None, -15])
+def test_macos_group_permission_error_is_ignored_only_after_leader_exit(
+    monkeypatch, exit_code
+) -> None:
+    process = Mock(spec=subprocess.Popen)
+    process.pid = 12345
+    process.poll.return_value = exit_code
+
+    def denied(*args):
+        raise PermissionError("group probe denied")
+
+    monkeypatch.setattr(os, "killpg", denied)
+    if exit_code is None:
+        with pytest.raises(PermissionError):
+            _signal_group(process, 0)
+    else:
+        assert _signal_group(process, 0) is False
 
 
 def is_active(pid: int) -> bool:

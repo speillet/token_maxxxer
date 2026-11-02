@@ -9,7 +9,7 @@ remplace pas les checkpoints d'exécution LangGraph du futur jalon 4.
 | --- | --- | --- |
 | 0 — Abonnement | Partiel | Contrat documentaire ; CLI absent de cette machine, validation du compte et appel réel à faire |
 | 1 — Socle Python | Socle livré | Configuration, modèles, SQLite, CLI en lecture/simulation et tests locaux ; modules d'exécution aux jalons suivants |
-| 2 — Exécuteur | En cours, hors ligne | Résultat normalisé, faux exécuteur et transport subprocess ; qualification réelle toujours ouverte |
+| 2 — Exécuteur | Livré hors ligne, pilote ouvert | Résultat normalisé, faux exécuteur et transport subprocess ; qualification réelle et pause durable toujours ouvertes |
 | 3 à 7 | À faire | Suivre `roadmap.md` ; aucune exécution Claude réelle dans ce lot |
 
 Le socle se développe hors ligne pendant que la validation opérationnelle du
@@ -28,9 +28,10 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | CP-005 | `425075f` | CI Python 3.11/3.13, conventions et documentation des commandes disponibles | Actions épinglées par SHA ; 50 tests locaux sur les deux versions et smoke CLI en processus séparés |
 | CP-006 | `e3f7f88` | Correction du constat P2 des revues Standards et Spec : chemins SQLite imbriqués et parent fichier refusés | 55 tests sur Python 3.11 ; correction confirmée par les deux revues |
 | CP-007 | `ae1ecf7` | Socle Python documenté, point de départ du jalon 2 | Arbre propre à la reprise ; PR #1 ouverte |
-| CP-008 | Commit `feat(runner): normalize terminal results and redact diagnostics` | Classification conservatrice du JSON terminal, usage inconnu et diagnostics expurgés | Fixtures synthétiques ; tests de résultats et de credentials factices |
-| CP-009 | Commit `feat(process): bound subprocess execution and clean process groups` | stdin littéral, sorties séparées, délais, limites de sortie et arrêt des descendants | Tests POSIX, enfant ignorant SIGTERM, parent terminé et interruption clavier |
-| CP-010 | Commit `feat(runner): add qualified CLI transport and deterministic fake` | Interface ClaudeRunner, faux déterministe et précontrôles avant une seule invocation | Faux CLI local, refus d'environnement incompatible, version différente et compte non confirmé |
+| CP-008 | `552e051` | Classification conservatrice du JSON terminal, usage inconnu et diagnostics expurgés | 36 tests de résultats, fixtures synthétiques et credentials factices |
+| CP-009 | `ecb3b67` | stdin littéral, sorties séparées, délais, limites de sortie et arrêt des descendants | Tests POSIX, enfant ignorant SIGTERM, parent terminé et interruption clavier ; correctif macOS CP-011 nécessaire |
+| CP-010 | `819261c` | Interface ClaudeRunner, faux déterministe et précontrôles avant une seule invocation | 28 tests sur faux CLI local ; refus d'environnement incompatible, version différente et compte non confirmé |
+| CP-011 | Commit `fix(process): handle macOS probes after process termination` | Cas macOS EPERM sur groupe terminé : interruption initiale préservée, refus sur processus vivant conservé | Régression simulée et vraie interruption ; suite complète et build relancés |
 
 ## Livraison du socle
 
@@ -69,7 +70,9 @@ worktrees non validés. La migration initiale n'a pas de downgrade destructif.
 
 ## Prochaine reprise
 
-1. Consulter les résultats CI de la PR du socle.
+1. Consulter les PR du socle et de l'exécuteur ainsi que leurs résultats CI.
 2. Installer/identifier le CLI officiel, vérifier la connexion abonnement et les
    crédits supplémentaires dans le compte, puis consigner un appel minimal.
-3. Commencer le jalon 2 avec le faux exécuteur et les scénarios d'erreur.
+3. Préparer le jalon 3 : worktree Git autorisé, audit, vérifications ; raccorder
+   ensuite la commande réelle seulement si la qualification du jalon 0 est acquise.
+4. Ajouter la pause durable d'authentification avec le workflow du jalon 4.
