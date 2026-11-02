@@ -12,7 +12,14 @@ from token_maxxxer.config import Config, ProviderConfig, load_config
 from token_maxxxer.credentials import resolve_credential
 from token_maxxxer.local_state import default_state_directory, read_record, write_record
 from token_maxxxer.models import Model
-from token_maxxxer.night import NightPlan, NightSession, list_sessions, load_session, run_night
+from token_maxxxer.night import (
+    NightPlan,
+    NightSession,
+    list_sessions,
+    load_session,
+    public_session_json,
+    run_night,
+)
 from token_maxxxer.providers import create_provider
 from token_maxxxer.redaction import redact
 from token_maxxxer.repositories import (
@@ -129,7 +136,7 @@ def execute(arguments: argparse.Namespace) -> int:
                 raise ValueError("invalid session ID")
             session = load_session(state / "runs" / arguments.id)
             if arguments.json:
-                print(session.model_dump_json())
+                print(public_session_json(session))
             else:
                 report = state / "runs" / arguments.id / "report.md"
                 text = (
@@ -146,7 +153,9 @@ def execute(arguments: argparse.Namespace) -> int:
         else:
             sessions = list_sessions(state)
             if arguments.json:
-                print(json.dumps([session.model_dump(mode="json") for session in sessions]))
+                print(
+                    json.dumps([json.loads(public_session_json(session)) for session in sessions])
+                )
             else:
                 for session in sessions:
                     print(f"{session.id}\t{session.state}\t{_display(session.plan.repository)}")
@@ -267,10 +276,6 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
     )
     if state.is_relative_to(repository):
         raise ValueError("--state-dir must be outside the selected repository")
-    if mode == "edit" and git(repository, "status", "--porcelain=v1", "-z"):
-        raise ValueError(
-            "edit mode requires a clean repository; commit or save existing work first"
-        )
     if mode == "review" and verification:
         raise ValueError("review mode does not execute verification commands")
     json_output = getattr(arguments, "json", False)
@@ -292,6 +297,10 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
         ):
             print("Session cancelled. Nothing was launched.")
             return 0
+    if mode == "edit" and git(repository, "status", "--porcelain=v1", "-z"):
+        raise ValueError(
+            "edit mode requires a clean repository; commit or save existing work first"
+        )
     provider = create_provider(settings)
     credential = resolve_credential(settings, env_file)
     remember_repository(state, repository, skill.id)
@@ -308,7 +317,7 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
 
     session = run_night(plan, skill, state, provider, credential, progress=progress)
     if json_output:
-        print(session.model_dump_json())
+        print(public_session_json(session))
     else:
         print(f"Session {session.id}: {session.state} ({session.reason})")
         print(f"Report: {state / 'runs' / session.id / 'report.md'}")

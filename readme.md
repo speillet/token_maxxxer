@@ -66,10 +66,16 @@ Git isolation, not an operating-system sandbox.
 
 The agent can list/read eligible tracked UTF-8 files, create/replace text files
 in its worktree, read selected skill resources and run approved checks. It
-excludes ignored files, credential filenames, Git metadata, symlinks, common
+excludes ignored files, known credential filenames, Git metadata, symlinks, common
 binary formats and files above 64 KiB. Reads are redacted for recognized
 credentials; eligible project content is sent to the selected API provider.
 It loads tracked `AGENTS.md` instructions, including nested directory rules.
+Repository skill resources follow the tracked-file rules in the worktree.
+For a user skill outside the repository, supporting-file reads are confined to
+its selected directory, with the same size, credential-name and symlink limits.
+Do not put credentials in verification arguments; recognized secrets and
+credential options are rejected before persistence. Check environments omit
+credential variables. Cleanliness checks run only after session confirmation.
 
 Skills are Markdown instructions, not executable plugins. External MCP tools,
 subagents and arbitrary shell commands referenced by a skill are unavailable;

@@ -2,6 +2,7 @@
 
 import fcntl
 import json
+import re
 import signal
 import threading
 import time
@@ -12,12 +13,12 @@ from types import FrameType
 from typing import Annotated, Literal
 from uuid import uuid4
 
-from pydantic import ConfigDict, Field, SecretStr
+from pydantic import ConfigDict, Field, SecretStr, field_validator
 
 from token_maxxxer.config import ProviderConfig
 from token_maxxxer.file_tools import FileTools
 from token_maxxxer.json_io import load_unique_json
-from token_maxxxer.local_state import read_record, write_record
+from token_maxxxer.local_state import read_record, write_private_text, write_record
 from token_maxxxer.models import CommandArgument, Model, utc_now
 from token_maxxxer.providers import GenerationRequest, Provider
 from token_maxxxer.redaction import redact
@@ -38,6 +39,27 @@ class NightPlan(Model):
     verification_commands: tuple[
         Annotated[tuple[CommandArgument, ...], Field(min_length=1)], ...
     ] = ()
+
+    @field_validator("verification_commands")
+    @classmethod
+    def no_command_credentials(
+        cls, commands: tuple[tuple[str, ...], ...]
+    ) -> tuple[tuple[str, ...], ...]:
+        encoded = json.dumps(commands)
+        sensitive_option = re.compile(
+            r"^(?:--?)?(?:api[-_]?key|access[-_]?token|token|password|secret|credential|authorization)"
+            r"(?:=|$)",
+            re.IGNORECASE,
+        )
+        if redact(encoded) != encoded or any(
+            "\x00" in argument or sensitive_option.match(argument)
+            for command in commands
+            for argument in command
+        ):
+            raise ValueError("verification arguments must not contain credentials")
+        if len(commands) > 5:
+            raise ValueError("at most five verification commands are allowed")
+        return commands
 
 
 class ReadFile(Model):
@@ -167,7 +189,11 @@ def list_sessions(state: Path) -> list[NightSession]:
 
 
 def _save(session: NightSession, directory: Path) -> None:
-    write_record(directory / "session.json", session.model_dump(mode="json"))
+    write_record(directory / "session.json", load_unique_json(public_session_json(session)))
+
+
+def public_session_json(session: NightSession) -> str:
+    return redact(session.model_dump_json())
 
 
 def _report(session: NightSession, directory: Path) -> None:
@@ -206,9 +232,7 @@ def _report(session: NightSession, directory: Path) -> None:
     )
     path = directory / "report.md"
     # The report is derived from the atomic session record and contains no prompts or raw responses.
-    with path.open("w", encoding="utf-8") as stream:
-        stream.write(redact("\n".join(lines)) + "\n")
-    path.chmod(0o600)
+    write_private_text(path, "\n".join(redact(line) for line in lines) + "\n")
 
 
 def _prompt(
@@ -305,10 +329,13 @@ def run_night(
                 _save(session, directory)
                 if progress:
                     progress(session)
+                skill_directory = skill.path.parent if skill.path else None
+                if skill_directory and skill_directory.is_relative_to(repository):
+                    skill_directory = root / skill_directory.relative_to(repository)
                 tools = FileTools(
                     root,
                     editable=plan.mode == "edit",
-                    skill_directory=skill.path.parent if skill.path else None,
+                    skill_directory=skill_directory,
                 )
                 instructions = tools.repository_instructions()
                 _loop(

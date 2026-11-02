@@ -27,11 +27,18 @@ requested interactively; a model is never silently substituted.
 - Edit mode requires a clean repository and creates a unique branch/worktree
   from the recorded HEAD. All writes stay in that worktree. Git metadata,
   credential files, ignored files, symlinks and paths outside the root are denied.
+- Repository skill resources use the same tracked-file rules and are read from
+  the worktree in edit mode. User skills outside the repository can read bounded
+  supporting files only within their explicitly selected skill directory;
+  credential-name, size and symlink restrictions still apply there.
 - A typed JSON action protocol supports file reads, writes, approved verification
   commands and completion. No model-supplied shell command is executed.
 - Only verification commands explicitly supplied by the user can execute. Each
   has a timeout and process-group cancellation. A worktree is not an OS sandbox:
   repository code and verification commands must be trusted.
+- Verification arguments must not contain credentials. Preview and cancellation
+  never run Git status: its clean filters can execute repository-configured code.
+  Cleanliness checks happen only after confirmation, before credential access.
 - The skill repeats while it reports remaining useful work, within a wall-clock
   deadline and a maximum API-call count. It stops early when done. No empty work
   is invented to consume tokens. Reported token usage is observed, not a price cap.

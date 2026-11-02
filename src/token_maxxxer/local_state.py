@@ -24,13 +24,16 @@ def read_record(path: Path) -> object:
 
 
 def write_record(path: Path, value: object) -> None:
+    write_private_text(path, json.dumps(value, ensure_ascii=True, allow_nan=False, indent=2) + "\n")
+
+
+def write_private_text(path: Path, content: str) -> None:
     """Replace a record atomically with mode 0600, retaining the previous file on error."""
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     descriptor, temporary = tempfile.mkstemp(prefix=".record-", dir=path.parent)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            json.dump(value, stream, ensure_ascii=True, allow_nan=False, indent=2)
-            stream.write("\n")
+            stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, path)

@@ -92,7 +92,10 @@ def discover_skills(repository: Path) -> list[Skill]:
     seen_paths: set[Path] = set()
     seen_ids: set[str] = set()
     for source, directory in directories:
-        if not directory.is_dir() or directory.is_symlink():
+        boundary = repository if source == "repo" else Path.home()
+        ancestors = [directory, *directory.parents]
+        ancestors = ancestors[: ancestors.index(boundary)] if boundary in ancestors else ancestors
+        if not directory.is_dir() or any(parent.is_symlink() for parent in ancestors):
             continue
         for child in sorted(directory.iterdir())[:200]:
             path = child / "SKILL.md"

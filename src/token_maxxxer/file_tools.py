@@ -18,11 +18,15 @@ _DENIED_DIRECTORIES = {
     ".ssh",
     ".aws",
     ".gnupg",
+    ".docker",
+    ".kube",
+    ".terraform",
     ".worktrees",
     "worktrees",
     "var",
 }
 _DENIED_SUFFIXES = {
+    ".tfstate",
     ".pem",
     ".key",
     ".p12",
@@ -51,6 +55,22 @@ _DENIED_SUFFIXES = {
 }
 
 
+_CREDENTIAL_FILES = {
+    ".npmrc",
+    ".pypirc",
+    ".netrc",
+    "_netrc",
+    ".git-credentials",
+    ".dockercfg",
+    ".yarnrc",
+    ".yarnrc.yml",
+    ".pgpass",
+    ".my.cnf",
+    ".s3cfg",
+    "pip.conf",
+}
+
+
 def safe_relative_path(value: str) -> Path:
     path = PurePosixPath(value)
     if (
@@ -60,6 +80,7 @@ def safe_relative_path(value: str) -> Path:
         or "\\" in value
         or any(ord(char) < 32 or ord(char) == 127 for char in value)
         or any(part.lower() in _DENIED_DIRECTORIES for part in path.parts)
+        or any(part.lower() in _CREDENTIAL_FILES for part in path.parts)
         or any(
             part.lower().startswith((".env", "credentials", "id_rsa", "id_ed25519"))
             for part in path.parts
@@ -146,6 +167,8 @@ class FileTools:
         if self.skill_directory is None:
             raise ValueError("this skill has no supporting directory")
         path = _checked_path(self.skill_directory, safe_relative_path(value))
+        if path.is_relative_to(self.root):
+            return self.read_file(path.relative_to(self.root).as_posix())
         return redact(_read_text(path)[0])
 
     def repository_instructions(self) -> str:

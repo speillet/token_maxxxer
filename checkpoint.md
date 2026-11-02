@@ -80,7 +80,8 @@ their heads are confirmed to be ancestors of main; rollback commits remain reach
 | CP-025 | `2f75c84` | Local path/file-URL validation, bounded discovery, private recent-path history, repository/user SKILL.md catalogs and built-in instructions; tested without AI calls |
 | CP-026 | `d24eb13` | Typed file tools, signal/deadline cancellation, approved verification, per-repository locking, private session records and reports; original working trees remain untouched |
 | CP-027 | `18090c5` | No-argument picker, explicit night/repository/skill/session commands, confirmed API use, provider profile and network-free previews; 191 tests pass locally |
-| CP-028 | `docs: explain interactive overnight sessions and recovery` | CLI usage, skill/tool scope, foreground limits, reports and review/rollback procedure |
+| CP-028 | `165f3fe` | CLI usage, skill/tool scope, foreground limits, reports and review/rollback procedure |
+| CP-029 | `fix(night): enforce preview and credential boundaries` | Review corrections: reject credential arguments, sanitize records, exclude conventional credential files and linked skill roots, scope repository skill resources to the worktree, atomically replace reports, and defer Git status until confirmed execution |
 
 Use `git log --all --oneline` to find the SHA for a checkpoint identified by
 commit subject. Earlier checkpoint source is recoverable even after its branch
