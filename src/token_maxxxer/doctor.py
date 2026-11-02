@@ -45,11 +45,11 @@ def _writable_ancestor(path: Path) -> bool:
 def diagnose(config: Config) -> list[Check]:
     checks = [
         Check("python", "ok", f"Python {sys.version_info.major}.{sys.version_info.minor}"),
-        Check("configuration", "ok", "configuration valide ; aucune requête API effectuée"),
+        Check("configuration", "ok", "valid configuration; no API request made"),
     ]
     git = shutil.which("git")
     if not git:
-        checks.append(Check("git", "error", "Git introuvable dans PATH"))
+        checks.append(Check("git", "error", "Git was not found in PATH"))
     else:
         result = _probe([git, "--version"])
         valid = result is not None and result.returncode == 0
@@ -57,7 +57,7 @@ def diagnose(config: Config) -> list[Check]:
             Check(
                 "git",
                 "ok" if valid else "error",
-                "Git disponible" if valid else "Git ne répond pas",
+                "Git is available" if valid else "Git is not responding",
             )
         )
         for repository in config.repositories.allowed:
@@ -71,9 +71,7 @@ def diagnose(config: Config) -> list[Check]:
                 Check(
                     f"repository:{repository}",
                     "ok" if valid else "error",
-                    "racine Git autorisée"
-                    if valid
-                    else "le chemin doit être une racine Git existante",
+                    "allowed Git root" if valid else "the path must be an existing Git root",
                 )
             )
 
@@ -84,7 +82,7 @@ def diagnose(config: Config) -> list[Check]:
             "ok" if supported else "error",
             f"{config.provider.name} / {config.provider.model}"
             if supported
-            else "Copilot : intégration SDK prévue, adaptateur indisponible",
+            else "Copilot: SDK integration planned, adapter unavailable",
         )
     )
     configured = credential_configured(config.provider, config.authentication.env_file)
@@ -92,9 +90,9 @@ def diagnose(config: Config) -> list[Check]:
         Check(
             "credential_configuration",
             "ok" if configured else "error",
-            "clé ou référence configurée (non résolue, non authentifiée)"
+            "key or reference configured (not resolved or authenticated)"
             if configured
-            else "clé ou référence absente pour le fournisseur sélectionné",
+            else "key or reference missing for the selected provider",
         )
     )
 
@@ -110,9 +108,9 @@ def diagnose(config: Config) -> list[Check]:
             Check(
                 label,
                 "ok" if writable else "error",
-                "emplacement accessible (aucune création)"
+                "location is accessible (nothing created)"
                 if writable
-                else "emplacement non accessible",
+                else "location is not accessible",
             )
         )
     # Validate existing schema without migrating, creating or changing task status.
@@ -122,7 +120,7 @@ def diagnose(config: Config) -> list[Check]:
         Check(
             "execution_gate",
             "warning",
-            "query génère du texte ; exécution automatique de code à raccorder",
+            "query generates text; automatic code execution is not connected",
         )
     )
     return checks

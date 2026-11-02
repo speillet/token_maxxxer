@@ -38,7 +38,7 @@ def test_batch_conflict_rolls_back_every_insert(tmp_path, task) -> None:
     store = TaskStore(tmp_path / "queue.sqlite")
     store.import_tasks((task,))
     new = task.model_copy(update={"id": "new"})
-    conflict = task.model_copy(update={"prompt": "Autre consigne"})
+    conflict = task.model_copy(update={"prompt": "Different prompt"})
     with pytest.raises(TaskConflictError):
         store.import_tasks((new, conflict))
     assert [record.task for record in store.list_tasks()] == [task]

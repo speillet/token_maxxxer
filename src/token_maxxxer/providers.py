@@ -10,7 +10,7 @@ from pydantic import Field, SecretStr, field_validator
 
 from token_maxxxer.config import ProviderConfig
 from token_maxxxer.models import Model, UsageObservation, utc_now
-from token_maxxxer.runner_result import RunnerResult, RunnerStatus
+from token_maxxxer.results import GenerationResult, GenerationStatus
 
 MAX_PROMPT_CHARACTERS = 1_048_576
 
@@ -23,20 +23,20 @@ class GenerationRequest(Model):
     @classmethod
     def nonblank_prompt(cls, value: str) -> str:
         if not value.strip():
-            raise ValueError("la consigne ne peut pas être vide")
+            raise ValueError("the prompt must not be blank")
         return value
 
 
 class Provider(Protocol):
-    def generate(self, request: GenerationRequest, credential: SecretStr) -> RunnerResult: ...
+    def generate(self, request: GenerationRequest, credential: SecretStr) -> GenerationResult: ...
 
 
 class UnsupportedProviderError(ValueError):
     """A provider is recognized but has not been integrated yet."""
 
 
-def _api_failure(error: Exception, started: float) -> RunnerResult:
-    status: RunnerStatus = "invalid_output"
+def _api_failure(error: Exception, started: float) -> GenerationResult:
+    status: GenerationStatus = "invalid_output"
     code = "invalid_api_response"
     if isinstance(error, (anthropic.APITimeoutError, openai.APITimeoutError)):
         status, code = "timeout", "api_timeout"
@@ -52,14 +52,16 @@ def _api_failure(error: Exception, started: float) -> RunnerResult:
         else:
             code = "api_request_rejected"
     # Exception strings, response bodies and headers can contain credentials.
-    return RunnerResult(status=status, error_code=code, duration_seconds=time.monotonic() - started)
+    return GenerationResult(
+        status=status, error_code=code, duration_seconds=time.monotonic() - started
+    )
 
 
 class AnthropicProvider:
     def __init__(self, transport: httpx.BaseTransport | None = None):
         self._transport = transport
 
-    def generate(self, request: GenerationRequest, credential: SecretStr) -> RunnerResult:
+    def generate(self, request: GenerationRequest, credential: SecretStr) -> GenerationResult:
         started = time.monotonic()
         try:
             with anthropic.Anthropic(
@@ -86,10 +88,10 @@ class AnthropicProvider:
                     for block in message.content
                 )
             )
-            return RunnerResult(
+            return GenerationResult(
                 status="success" if complete else "invalid_output",
                 text=text,
-                session_id=message.id,
+                response_id=message.id,
                 error_code=None if complete else "incomplete_generation",
                 duration_seconds=time.monotonic() - started,
                 usage=UsageObservation(
@@ -107,7 +109,7 @@ class OpenAIProvider:
     def __init__(self, transport: httpx.BaseTransport | None = None):
         self._transport = transport
 
-    def generate(self, request: GenerationRequest, credential: SecretStr) -> RunnerResult:
+    def generate(self, request: GenerationRequest, credential: SecretStr) -> GenerationResult:
         started = time.monotonic()
         try:
             with openai.OpenAI(
@@ -152,10 +154,10 @@ class OpenAIProvider:
                     input_tokens=response.usage.input_tokens,
                     output_tokens=response.usage.output_tokens,
                 )
-            return RunnerResult(
+            return GenerationResult(
                 status="success" if complete else "invalid_output",
                 text=response.output_text,
-                session_id=response.id,
+                response_id=response.id,
                 error_code=None if complete else "incomplete_generation",
                 duration_seconds=time.monotonic() - started,
                 usage=usage,
@@ -172,5 +174,5 @@ def create_provider(
     if settings.name == "openai":
         return OpenAIProvider(transport)
     raise UnsupportedProviderError(
-        "Copilot nécessite son SDK officiel et un token GitHub autorisé ; adaptateur indisponible"
+        "Copilot requires its official SDK and an authorized GitHub token; adapter unavailable"
     )

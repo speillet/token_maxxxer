@@ -17,31 +17,31 @@ from token_maxxxer.storage import TaskStore
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="token_maxxxer", description="token_maxxxer — socle local"
+        prog="token_maxxxer", description="token_maxxxer — local API task toolkit"
     )
     parser.add_argument("--config", type=Path, default=Path("token_maxxxer.yaml"))
     commands = parser.add_subparsers(dest="command", required=True)
-    doctor = commands.add_parser("doctor", help="diagnostic sans inférence ni modification")
+    doctor = commands.add_parser(
+        "doctor", help="diagnose configuration without API requests or changes"
+    )
     doctor.add_argument("--json", action="store_true")
-    tasks = commands.add_parser("tasks", help="file de tâches explicites")
+    tasks = commands.add_parser("tasks", help="explicit task queue")
     task_commands = tasks.add_subparsers(dest="task_command", required=True)
-    importer = task_commands.add_parser("import", help="importer un YAML de confiance")
+    importer = task_commands.add_parser("import", help="import trusted YAML")
     importer.add_argument("path", type=Path)
     importer.add_argument("--json", action="store_true")
-    listing = task_commands.add_parser("list", help="lister par priorité puis arrivée")
+    listing = task_commands.add_parser("list", help="list tasks by priority and arrival")
     listing.add_argument("--json", action="store_true")
-    run = commands.add_parser("run", help="simuler la prochaine tâche sans l'acquérir")
+    run = commands.add_parser("run", help="preview the next task without claiming it")
     run.add_argument(
         "--dry-run",
         action="store_true",
         required=True,
-        help="seule la simulation est disponible dans ce jalon",
+        help="only dry-run mode is available at this milestone",
     )
     run.add_argument("--json", action="store_true")
-    query = commands.add_parser("query", help="envoyer une consigne au fournisseur API sélectionné")
-    query.add_argument(
-        "--prompt-file", type=Path, required=True, help="fichier UTF-8, ou - pour stdin"
-    )
+    query = commands.add_parser("query", help="send a prompt to the selected API provider")
+    query.add_argument("--prompt-file", type=Path, required=True, help="UTF-8 file, or - for stdin")
     query.add_argument("--json", action="store_true")
     return parser
 
@@ -56,7 +56,7 @@ def _execute(arguments: argparse.Namespace) -> int:
             with arguments.prompt_file.open(encoding="utf-8") as stream:
                 prompt = stream.read(MAX_PROMPT_CHARACTERS + 1)
         if len(prompt) > MAX_PROMPT_CHARACTERS:
-            raise ValueError("consigne trop volumineuse ; aucun envoi effectué")
+            raise ValueError("prompt is too large; nothing was sent")
         request = GenerationRequest(prompt=prompt, settings=config.provider)
         provider = create_provider(config.provider)
         credential = resolve_credential(config.provider, config.authentication.env_file)
@@ -82,19 +82,19 @@ def _execute(arguments: argparse.Namespace) -> int:
             print(
                 json.dumps({"inserted": inserted, "unchanged": unchanged})
                 if arguments.json
-                else f"{inserted} tâche(s) importée(s), {unchanged} inchangée(s)."
+                else f"{inserted} task(s) imported, {unchanged} unchanged."
             )
         else:
             records = store.list_tasks()
             if arguments.json:
                 print(json.dumps([record.model_dump(mode="json") for record in records]))
             elif not records:
-                print("File vide.")
+                print("Queue is empty.")
             else:
                 for task_record in records:
                     print(
                         f"{task_record.task.id}\t{task_record.status.value}"
-                        f"\tpriorité={task_record.task.priority}"
+                        f"\tpriority={task_record.task.priority}"
                     )
         return 0
     record = preview_next(config, store)
@@ -103,16 +103,16 @@ def _execute(arguments: argparse.Namespace) -> int:
         "execution_enabled": False,
         "schedule_evaluated": False,
         "provider": {"name": config.provider.name, "model": config.provider.model},
-        "reason": "simulation de sélection ; exécution de code et planning à raccorder",
+        "reason": "selection preview; code execution and scheduling are not connected",
         "task": record.task.model_dump(mode="json") if record else None,
         "status": record.status.value if record else None,
     }
     if arguments.json:
         print(json.dumps(plan))
     else:
-        print(f"Prochaine tâche : {record.task.id}" if record else "File vide.")
+        print(f"Next task: {record.task.id}" if record else "Queue is empty.")
         print(plan["reason"])
-        print("Aucun lancement ni changement d'état.")
+        print("Nothing was launched and no state was changed.")
     return 0
 
 
@@ -121,5 +121,5 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         return _execute(arguments)
     except (OSError, ValueError, sqlite3.Error) as exc:
-        print(f"Erreur : {exc}", file=sys.stderr)
+        print(f"Error: {exc}", file=sys.stderr)
         return 2

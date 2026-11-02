@@ -56,7 +56,7 @@ def generate(name, handler):
     settings = ProviderConfig(name=name, model="fixture-model", max_output_tokens=128)
     provider = create_provider(settings, transport=httpx.MockTransport(handler))
     return provider.generate(
-        GenerationRequest(prompt="Consigne explicite.", settings=settings), SecretStr(KEY)
+        GenerationRequest(prompt="Explicit prompt.", settings=settings), SecretStr(KEY)
     )
 
 
@@ -76,13 +76,13 @@ def test_provider_request_and_usage(name, monkeypatch) -> None:
             assert request.headers["x-api-key"] == KEY
             assert "authorization" not in request.headers
             assert body["max_tokens"] == 128
-            assert body["messages"][0]["content"] == "Consigne explicite."
+            assert body["messages"][0]["content"] == "Explicit prompt."
         else:
             assert str(request.url) == "https://api.openai.com/v1/responses"
             assert request.headers["authorization"] == "Bearer " + KEY
             assert body["max_output_tokens"] == 128
             assert body["store"] is False
-            assert body["input"] == "Consigne explicite."
+            assert body["input"] == "Explicit prompt."
         return httpx.Response(200, json=payload(name))
 
     result = generate(name, handler)
@@ -91,7 +91,7 @@ def test_provider_request_and_usage(name, monkeypatch) -> None:
     assert result.usage.input_tokens == 12
     assert result.usage.output_tokens == 7
     assert result.usage.estimated_cost_usd is None
-    assert result.stdout == result.stderr == ""
+    assert result.response_id == payload(name)["id"]
     assert len(calls) == 1
     assert KEY not in result.model_dump_json()
 
@@ -175,7 +175,7 @@ def test_unknown_openai_usage_remains_unknown() -> None:
 
 
 def test_copilot_does_not_claim_implementation() -> None:
-    with pytest.raises(UnsupportedProviderError, match="SDK officiel"):
+    with pytest.raises(UnsupportedProviderError, match="official SDK"):
         create_provider(ProviderConfig(name="copilot", model="fixture-model"))
 
 
@@ -214,7 +214,7 @@ def test_claude_does_not_treat_an_unhandled_tool_call_as_completed_text() -> Non
 
 
 def test_prompt_whitespace_and_indentation_are_preserved() -> None:
-    prompt = "\n    code indented\n"
+    prompt = "\n    indented code\n"
     request = GenerationRequest(prompt=prompt, settings=ProviderConfig(model="fixture-model"))
     assert request.prompt == prompt
 

@@ -3,8 +3,8 @@ tasks:
     repository: ..
     base_ref: main
     priority: 10
-    prompt: Ajouter un exemple de validation dans un dépôt de démonstration.
+    prompt: Add a validation example in a demonstration repository.
     acceptance_criteria:
-      - L'exemple est documenté et les tests existants passent.
+      - The example is documented and existing tests pass.
     verification_commands:
       - [python, -m, pytest, -q]

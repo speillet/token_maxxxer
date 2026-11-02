@@ -85,12 +85,12 @@ def test_plaintext_dotenv_keys_and_duplicates_are_rejected(tmp_path) -> None:
         assert "sk-fixture-value" not in str(error.value)
 
 
-@pytest.mark.parametrize("value", ["contains space", "bad\nvalue", "é", "x" * 4097])
+@pytest.mark.parametrize("value", ["contains space", "bad\nvalue", "\u03bb", "x" * 4097])
 def test_bad_credential_values_are_not_echoed(tmp_path, value) -> None:
-    with pytest.raises(CredentialError, match="format de credential invalide"):
+    with pytest.raises(CredentialError, match="invalid credential format"):
         resolve_credential(settings(), tmp_path / ".env", {"ANTHROPIC_API_KEY": value})
 
 
 def test_missing_key_does_not_fall_back_to_another_provider(tmp_path) -> None:
-    with pytest.raises(CredentialError, match="absente"):
+    with pytest.raises(CredentialError, match="missing"):
         resolve_credential(settings(), tmp_path / ".env", {"OPENAI_API_KEY": "sk-fixture-openai"})

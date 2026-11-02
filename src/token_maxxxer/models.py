@@ -71,7 +71,7 @@ class Task(Model):
     def safe_base_ref(cls, value: str) -> str:
         if value.startswith("-") or any(char.isspace() or ord(char) < 32 for char in value):
             raise ValueError(
-                "base_ref doit être une référence Git explicite, sans option ni espace"
+                "base_ref must be an explicit Git reference without options or whitespace"
             )
         return value
 
@@ -79,7 +79,7 @@ class Task(Model):
     @classmethod
     def command_arguments(cls, value: tuple[tuple[str, ...], ...]) -> tuple[tuple[str, ...], ...]:
         if any("\x00" in argument for command in value for argument in command):
-            raise ValueError("les arguments de vérification ne peuvent pas contenir NUL")
+            raise ValueError("verification arguments must not contain NUL")
         return value
 
 
@@ -114,7 +114,7 @@ class Attempt(Model):
     @model_validator(mode="after")
     def chronological_dates(self) -> "Attempt":
         if self.finished_at is not None and self.finished_at < self.started_at:
-            raise ValueError("finished_at doit suivre started_at")
+            raise ValueError("finished_at must not precede started_at")
         return self
 
 

@@ -9,7 +9,7 @@ from pydantic import SecretStr
 from token_maxxxer.cli import main
 from token_maxxxer.config import load_config
 from token_maxxxer.providers import MAX_PROMPT_CHARACTERS
-from token_maxxxer.runner_result import RunnerResult
+from token_maxxxer.results import GenerationResult
 from token_maxxxer.storage import TaskStore
 
 
@@ -94,13 +94,13 @@ def test_query_uses_common_provider_interface_and_leaves_queue_untouched(
     config_path, monkeypatch, capsys
 ) -> None:
     prompt_path = config_path.parent / "prompt.txt"
-    prompt_path.write_text("Consigne explicite.")
+    prompt_path.write_text("Explicit prompt.")
     captured = []
 
     class FakeProvider:
         def generate(self, request, credential):
             captured.append((request, credential))
-            return RunnerResult(status="success", text="Résultat de test.")
+            return GenerationResult(status="success", text="Test result.")
 
     monkeypatch.setattr("token_maxxxer.cli.create_provider", lambda _: FakeProvider())
     monkeypatch.setattr(
@@ -112,9 +112,9 @@ def test_query_uses_common_provider_interface_and_leaves_queue_untouched(
     )
     output = json.loads(capsys.readouterr().out)
     assert output["status"] == "success"
-    assert output["text"] == "Résultat de test."
+    assert output["text"] == "Test result."
     assert "sk-fixture-private" not in json.dumps(output)
-    assert captured[0][0].prompt == "Consigne explicite."
+    assert captured[0][0].prompt == "Explicit prompt."
     assert captured[0][0].settings.name == "claude"
     assert not (config_path.parent / "var").exists()
 
@@ -135,7 +135,7 @@ def test_dry_run_never_creates_a_provider_or_resolves_credentials(
 def test_oversized_prompt_is_rejected_before_provider_or_credential_access(
     config_path, monkeypatch, capsys, stdin
 ) -> None:
-    text = "\n" + "a" * MAX_PROMPT_CHARACTERS + " instruction finale"
+    text = "\n" + "a" * MAX_PROMPT_CHARACTERS + " final instruction"
     prompt_path = config_path.parent / "prompt.txt"
     prompt_path.write_text(text)
     if stdin:
@@ -148,4 +148,4 @@ def test_oversized_prompt_is_rejected_before_provider_or_credential_access(
     monkeypatch.setattr("token_maxxxer.cli.resolve_credential", forbidden)
     source = "-" if stdin else str(prompt_path)
     assert main(["--config", str(config_path), "query", "--prompt-file", source]) == 2
-    assert "aucun envoi" in capsys.readouterr().err
+    assert "nothing was sent" in capsys.readouterr().err

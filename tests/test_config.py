@@ -28,10 +28,10 @@ def test_paths_are_relative_to_source_even_for_defaults(config_path: Path, monke
 @pytest.mark.parametrize(
     ("key", "value", "message"),
     [
-        ("timezone", "Mars/Olympus", "fuseau IANA"),
+        ("timezone", "Mars/Olympus", "IANA timezone"),
         ("execution", {"concurrency": 2}, "concurrency"),
         ("execution", {"max_attempts_per_task": 0}, "max_attempts_per_task"),
-        ("execution", {"retry_backoff_seconds": [30, 10]}, "croissants"),
+        ("execution", {"retry_backoff_seconds": [30, 10]}, "nondecreasing"),
         ("execution", {"retry_backoff_seconds": []}, "retry_backoff_seconds"),
         ("execution", {"task_timeout_minutes": True}, "task_timeout_minutes"),
         ("git", {"auto_merge": True}, "auto_merge"),
@@ -44,7 +44,7 @@ def test_paths_are_relative_to_source_even_for_defaults(config_path: Path, monke
             {"name": "claude", "model": "fixture", "max_output_tokens": 0},
             "max_output_tokens",
         ),
-        ("storage", {"database": "same", "checkpoints": "same"}, "distinctes"),
+        ("storage", {"database": "same", "checkpoints": "same"}, "distinct"),
         ("unexpected", "secret-value", "Extra inputs"),
     ],
 )
@@ -77,7 +77,7 @@ def test_allowlist_resolves_symlinks_and_rejects_duplicates(tmp_path) -> None:
     link.symlink_to(tmp_path, target_is_directory=True)
     data = configuration(tmp_path)
     data["repositories"] = {"allowed": [str(tmp_path), str(link)]}
-    with pytest.raises(ValidationError, match="uniques"):
+    with pytest.raises(ValidationError, match="unique"):
         Config.model_validate(data)
 
 
@@ -89,7 +89,7 @@ def test_sqlite_paths_cannot_be_nested_before_creation(tmp_path, reverse) -> Non
         database, checkpoints = checkpoints, database
     data = configuration(tmp_path)
     data["storage"] = {"database": str(database), "checkpoints": str(checkpoints)}
-    with pytest.raises(ValidationError, match="non imbriquées"):
+    with pytest.raises(ValidationError, match="non-nested"):
         Config.model_validate(data)
     assert not (tmp_path / "new-storage").exists()
 
@@ -100,7 +100,7 @@ def test_storage_parent_cannot_be_an_existing_file(tmp_path, field) -> None:
     parent_file.write_text("keep")
     data = configuration(tmp_path)
     data["storage"] = {field: str(parent_file / "missing-parent" / "storage")}
-    with pytest.raises(ValidationError, match=r"parent.*répertoire"):
+    with pytest.raises(ValidationError, match=r"parent.*directory"):
         Config.model_validate(data)
     assert parent_file.read_text() == "keep"
 
