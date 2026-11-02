@@ -1,3 +1,8 @@
+# Archive — prototype Claude Code
+
+Ce contrat décrit la PR #2 antérieure au cadrage API. Il ne pilote plus le
+parcours principal ; voir [providers.md](../providers.md).
+
 # Contrat Claude Code — validation documentaire
 
 Vérification documentaire : 2 novembre 2026. **Contrat provisoire, jalon 0 non
@@ -109,7 +114,7 @@ Un arrêt brutal de l'appelant ne déroule pas ces garanties : les gestionnaires
 SIGTERM du superviseur seront raccordés avec l'exécution et le service ; SIGKILL
 ne permet pas un nettoyage Python. Ce lot n'installe aucun service.
 
-Les [fixtures synthétiques](../tests/fixtures/claude/README.md) et le faux CLI
+Les [fixtures synthétiques](../../tests/fixtures/claude/README.md) et le faux CLI
 n'appellent aucun service externe. La version `2.1.999` est fictive. Le pilote
 doit encore confirmer les options, les métadonnées et les vrais signaux d'erreur.
 
