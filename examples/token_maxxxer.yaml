@@ -1,4 +1,4 @@
-# Tous les chemins relatifs sont résolus depuis ce fichier.
+# All relative paths are resolved from this file.
 timezone: Europe/Paris
 provider:
   name: claude
@@ -13,7 +13,7 @@ schedule:
   stop_policy: strict
   shutdown_grace_seconds: 10
 repositories:
-  allowed: [..]  # Remplacer par les racines Git explicitement autorisées.
+  allowed: [..]  # Replace with explicitly allowed Git roots.
 execution:
   concurrency: 1
   task_timeout_minutes: 30

@@ -31,15 +31,15 @@ def _references(path: Path) -> dict[str, str]:
     if not path.exists():
         return {}
     if path.is_symlink() or not path.is_file():
-        raise CredentialError("le fichier de références doit être un fichier local régulier")
+        raise CredentialError("the reference file must be a regular local file")
     with path.open("rb") as stream:
         raw = stream.read(65537)
     if len(raw) > 65536:
-        raise CredentialError("fichier de références trop volumineux")
+        raise CredentialError("reference file is too large")
     try:
         content = raw.decode("utf-8")
     except UnicodeError as exc:
-        raise CredentialError("fichier de références UTF-8 attendu") from exc
+        raise CredentialError("expected a UTF-8 reference file") from exc
     values: dict[str, str] = {}
     for line in content.splitlines():
         line = line.strip()
@@ -48,11 +48,11 @@ def _references(path: Path) -> dict[str, str]:
         name, separator, value = line.partition("=")
         name = name.strip()
         if name in KEY_VARIABLES.values():
-            raise CredentialError("stocker une référence dans .env, jamais la valeur d'une clé")
+            raise CredentialError("store a reference in .env, never an API key value")
         if name not in REFERENCE_VARIABLES.values():
             continue
         if not separator or name in values:
-            raise CredentialError("référence .env invalide ou dupliquée")
+            raise CredentialError("invalid or duplicate .env reference")
         value = value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
@@ -75,7 +75,7 @@ def _keychain_coordinates(reference: str) -> tuple[str, str]:
         or not _IDENTIFIER.fullmatch(parsed.netloc)
         or not _IDENTIFIER.fullmatch(account)
     ):
-        raise CredentialError("référence attendue : keychain://service/compte")
+        raise CredentialError("expected reference: keychain://service/account")
     return parsed.netloc, account
 
 
@@ -105,11 +105,11 @@ def resolve_credential(
     if not secret:
         reference = _reference(provider, path, environment)
         if not reference:
-            raise CredentialError("clé API absente pour le fournisseur sélectionné")
+            raise CredentialError("API key is missing for the selected provider")
         service, account = _keychain_coordinates(reference)
         if sys.platform != "darwin":
             raise CredentialError(
-                "la référence Trousseau nécessite macOS ; utiliser la variable API"
+                "Keychain references require macOS; use the API environment variable"
             )
         try:
             result = subprocess.run(
@@ -121,13 +121,13 @@ def resolve_credential(
                 check=False,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
-            raise CredentialError("lecture du gestionnaire de credentials impossible") from exc
+            raise CredentialError("cannot read the credential manager") from exc
         if result.returncode != 0 or len(result.stdout) > 4096:
-            raise CredentialError("credential inaccessible dans le Trousseau")
+            raise CredentialError("credential is inaccessible in Keychain")
         try:
             secret = result.stdout.decode("ascii").removesuffix("\n")
         except UnicodeError as exc:
-            raise CredentialError("format de credential invalide") from exc
+            raise CredentialError("invalid credential format") from exc
     if not secret or len(secret) > 4096 or any(not 33 <= ord(char) <= 126 for char in secret):
-        raise CredentialError("format de credential invalide")
+        raise CredentialError("invalid credential format")
     return SecretStr(secret)

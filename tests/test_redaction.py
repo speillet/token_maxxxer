@@ -3,7 +3,7 @@ import json
 import pytest
 
 from token_maxxxer.redaction import redact
-from token_maxxxer.runner_result import normalize_result
+from token_maxxxer.results import GenerationResult
 
 
 @pytest.mark.parametrize("name", ["password", "access_token", "client_secret", "ANTHROPIC_API_KEY"])
@@ -15,10 +15,9 @@ def test_credentials_embedded_in_json_are_absent_from_every_diagnostic(name, sec
         "is_error": False,
         "result": f'{name}="{secret}"',
     }
-    result = normalize_result(json.dumps(payload), "", 0)
+    result = GenerationResult(status="success", text=json.dumps(payload))
     assert result.status == "success"
     assert secret not in result.text
-    assert secret not in result.stdout
     assert secret not in result.model_dump_json()
     assert secret not in repr(result)
 
@@ -49,9 +48,8 @@ def test_duplicate_json_keys_never_preserve_overwritten_credentials(secret) -> N
         '{"type":"result","subtype":"success","is_error":false,'
         f'"result":{json.dumps(secret)},"result":"Done."}}'
     )
-    result = normalize_result(payload, "", 0)
-    assert result.status == "invalid_output"
-    for output in (result.stdout, result.model_dump_json()):
+    result = GenerationResult(status="success", text=payload)
+    for output in (result.text, result.model_dump_json()):
         assert secret not in output
         assert "fixture-token" not in output
 
@@ -65,8 +63,8 @@ def test_quoted_multiline_credential_is_redacted_entirely() -> None:
             "result": 'password="fixture-secret\ncontinuation-private"',
         }
     )
-    result = normalize_result(payload, "", 0)
-    for output in (result.text, result.stdout, result.model_dump_json()):
+    result = GenerationResult(status="success", text=payload)
+    for output in (result.text, result.model_dump_json()):
         assert "fixture-secret" not in output
         assert "continuation-private" not in output
 

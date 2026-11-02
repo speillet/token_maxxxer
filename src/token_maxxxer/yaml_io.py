@@ -21,10 +21,10 @@ class UniqueSafeLoader(yaml.SafeLoader):
             key = self.construct_object(key_node, deep=deep)
             try:
                 if key in mapping:
-                    raise DocumentError("clé YAML dupliquée")
+                    raise DocumentError("duplicate YAML key")
                 mapping[key] = self.construct_object(value_node, deep=deep)
             except TypeError as exc:
-                raise DocumentError("clé YAML invalide") from exc
+                raise DocumentError("invalid YAML key") from exc
         return mapping
 
 
@@ -32,11 +32,11 @@ def load_yaml(path: Path) -> Any:
     with path.open("rb") as stream:
         raw = stream.read(MAX_YAML_BYTES + 1)
     if len(raw) > MAX_YAML_BYTES:
-        raise DocumentError("document YAML trop volumineux (maximum 1 Mio)")
+        raise DocumentError("YAML document is too large (maximum 1 MiB)")
     try:
         content = raw.decode("utf-8")
         if any(isinstance(token, AliasToken) for token in yaml.scan(content)):
-            raise DocumentError("les alias YAML ne sont pas autorisés")
+            raise DocumentError("YAML aliases are not allowed")
         return yaml.load(content, Loader=UniqueSafeLoader)
     except (UnicodeError, yaml.YAMLError, RecursionError) as exc:
-        raise DocumentError("document YAML invalide (UTF-8 et syntaxe attendus)") from exc
+        raise DocumentError("invalid YAML document (expected UTF-8 and valid syntax)") from exc

@@ -11,8 +11,8 @@ def task(tmp_path: Path) -> Task:
         id="demo-task",
         repository=tmp_path,
         base_ref="main",
-        prompt="Ajouter la validation des entrées.",
-        acceptance_criteria=("Les tests passent.",),
+        prompt="Add input validation.",
+        acceptance_criteria=("The tests pass.",),
         verification_commands=(("python", "-m", "pytest"),),
     )
 

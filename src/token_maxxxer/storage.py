@@ -62,7 +62,7 @@ def _schema_metadata(connection: sqlite3.Connection) -> tuple[int, int]:
 
 def _require_current_schema(connection: sqlite3.Connection) -> None:
     if _schema_metadata(connection) != (APPLICATION_ID, SCHEMA_VERSION):
-        raise StorageError("schéma SQLite incompatible ; aucune migration implicite en lecture")
+        raise StorageError("incompatible SQLite schema; read operations do not migrate databases")
 
 
 def _migrate(connection: sqlite3.Connection) -> None:
@@ -77,7 +77,7 @@ def _migrate(connection: sqlite3.Connection) -> None:
             "SELECT name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"
         ).fetchall()
         if application_id != 0 or version != 0 or tables:
-            raise StorageError("base SQLite inconnue ou version incompatible ; import refusé")
+            raise StorageError("unknown SQLite database or incompatible version; import refused")
         for statement in INITIAL_SCHEMA:
             connection.execute(statement)
         connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
@@ -107,7 +107,7 @@ class TaskStore:
                     if existing:
                         if Task.model_validate_json(existing["definition_json"]) != task:
                             raise TaskConflictError(
-                                f"tâche {task.id} déjà définie différemment ; utiliser un nouvel id"
+                                f"task {task.id} already has a different definition; use a new id"
                             )
                         unchanged += 1
                         continue

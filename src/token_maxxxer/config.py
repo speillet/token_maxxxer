@@ -22,9 +22,9 @@ class Window(Model):
     @model_validator(mode="after")
     def unambiguous_window(self) -> "Window":
         if len(set(self.days)) != len(self.days):
-            raise ValueError("les jours d'un créneau doivent être uniques")
+            raise ValueError("schedule window days must be unique")
         if self.start == self.end:
-            raise ValueError("début et fin doivent être différents")
+            raise ValueError("start and end times must differ")
         return self
 
     def duration_seconds(self) -> int:
@@ -43,7 +43,7 @@ class ScheduleConfig(Model):
     @model_validator(mode="after")
     def grace_fits_window(self) -> "ScheduleConfig":
         if any(window.duration_seconds() <= self.shutdown_grace_seconds for window in self.windows):
-            raise ValueError("le délai de grâce doit être inférieur à la durée de chaque créneau")
+            raise ValueError("shutdown grace must be shorter than every schedule window")
         return self
 
 
@@ -65,7 +65,7 @@ class ExecutionConfig(Model):
     @classmethod
     def increasing_backoff(cls, value: tuple[int, ...]) -> tuple[int, ...]:
         if tuple(sorted(value)) != value:
-            raise ValueError("les délais de reprise doivent être croissants")
+            raise ValueError("retry delays must be nondecreasing")
         return value
 
 
@@ -99,9 +99,9 @@ class RepositoriesConfig(Model):
     @classmethod
     def existing_unique_directories(cls, paths: tuple[Path, ...]) -> tuple[Path, ...]:
         if any(not path.is_dir() for path in paths):
-            raise ValueError("chaque dépôt autorisé doit être un répertoire existant")
+            raise ValueError("each allowed repository must be an existing directory")
         if len(set(paths)) != len(paths):
-            raise ValueError("les dépôts autorisés doivent être uniques après résolution des liens")
+            raise ValueError("allowed repositories must be unique after resolving symlinks")
         return paths
 
 
@@ -117,24 +117,20 @@ class StorageConfig(Model):
         if self.database.is_relative_to(self.checkpoints) or self.checkpoints.is_relative_to(
             self.database
         ):
-            raise ValueError(
-                "les bases applicative et LangGraph doivent être distinctes et non imbriquées"
-            )
+            raise ValueError("application and checkpoint databases must be distinct and non-nested")
         for database in (self.database, self.checkpoints):
             if database.is_dir() or database == self.reports or database in self.reports.parents:
-                raise ValueError(
-                    "un chemin de base SQLite ne peut pas être un répertoire de rapports"
-                )
+                raise ValueError("a SQLite database path cannot be a reports directory")
             if database.is_relative_to(self.reports):
-                raise ValueError("les bases SQLite doivent être séparées du répertoire de rapports")
+                raise ValueError("SQLite databases must be separate from the reports directory")
         if self.reports.exists() and not self.reports.is_dir():
-            raise ValueError("reports doit désigner un répertoire")
+            raise ValueError("reports must point to a directory")
         for path in (self.database, self.checkpoints, self.reports):
             parent = path.parent
             while not parent.exists() and parent != parent.parent:
                 parent = parent.parent
             if not parent.is_dir():
-                raise ValueError("le parent d'un emplacement de stockage doit être un répertoire")
+                raise ValueError("the parent of a storage location must be a directory")
         return self
 
 
@@ -162,7 +158,7 @@ class Config(Model):
         try:
             ZoneInfo(value)
         except (ZoneInfoNotFoundError, ValueError) as exc:
-            raise ValueError("fuseau IANA inconnu") from exc
+            raise ValueError("unknown IANA timezone") from exc
         return value
 
 

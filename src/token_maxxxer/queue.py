@@ -18,7 +18,7 @@ class TaskDocument(Model):
 def require_authorized(task: Task, config: Config) -> None:
     repository = task.repository.resolve()
     if repository not in config.repositories.allowed or not repository.is_dir():
-        raise DocumentError(f"dépôt non autorisé ou absent pour la tâche {task.id}")
+        raise DocumentError(f"repository is not allowed or is missing for task {task.id}")
 
 
 def import_document(path: Path, config: Config, store: TaskStore) -> tuple[int, int]:
@@ -26,7 +26,7 @@ def import_document(path: Path, config: Config, store: TaskStore) -> tuple[int, 
     document = TaskDocument.model_validate(load_yaml(path), context={"base_directory": path.parent})
     ids = [task.id for task in document.tasks]
     if len(ids) != len(set(ids)):
-        raise DocumentError("identifiants de tâche dupliqués dans le document")
+        raise DocumentError("duplicate task identifiers in the document")
     for task in document.tasks:
         require_authorized(task, config)
     return store.import_tasks(document.tasks)

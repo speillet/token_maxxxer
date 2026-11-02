@@ -1,6 +1,6 @@
-# Contribuer
+# Contributing
 
-Python 3.11 minimum, macOS et Linux. Installer les dépendances avec le lockfile :
+Use Python 3.11 or newer on macOS or Linux. Install from the committed lockfile:
 
 ```bash
 uv sync --locked
@@ -11,37 +11,43 @@ uv run pytest -q
 uv build --no-sources
 ```
 
-## Conventions
+## Development standards
 
-- Garder le routage déterministe et les fournisseurs derrière l'interface
-  `Provider`. Claude et OpenAI utilisent leurs API officielles ; Copilot sera
-  raccordé via son SDK officiel et son authentification GitHub.
-- Valider les entrées avec les modèles Pydantic. Refuser les champs inconnus et
-  les chemins de dépôts qui ne figurent pas explicitement dans l'allowlist.
-- Passer les commandes comme listes d'arguments, sans shell. Définir un timeout
-  et une politique d'arrêt avant d'introduire un nouveau processus externe.
-- Ne jamais lire les jetons OAuth ou inclure des valeurs d'authentification dans
-  les logs. Les diagnostics ne doivent afficher que des métadonnées approuvées.
-- Persister les timestamps en UTC avec fuseau ; garder le planning local en IANA.
-- Garder `list`, `doctor` et `--dry-run` sans mutation de la file ou des dépôts.
-- Séparer la base applicative des checkpoints LangGraph. Versionner les
-  migrations et refuser une base inconnue ou plus récente.
-- Tester les comportements, les échecs et les frontières de confiance modifiés.
-  Utiliser des transports HTTP simulés, un faux CLI et des dépôts temporaires ;
-  aucun test ne consomme une API réelle.
-- Implémenter les modules au jalon où ils deviennent utiles ; ne pas ajouter
-  d'interfaces vides ou de chemins d'exécution qui prétendent être disponibles.
+- Keep routing deterministic and provider integrations behind `Provider`.
+  Claude and OpenAI use their official APIs; Copilot will use its official SDK
+  and authorized GitHub credentials.
+- Validate configuration and task input with Pydantic. Reject unknown fields
+  and repository paths that are not explicitly allowed.
+- Pass external commands as argument arrays without a shell. Define timeouts
+  and cancellation behavior before introducing a new external process.
+- Do not extract OAuth credentials or include authentication values in logs.
+  Diagnostics must expose only approved metadata; resolve secrets only for an
+  explicit operation that needs them.
+- Persist timezone-aware timestamps in UTC and use IANA names for local schedules.
+- Keep `list`, `doctor`, and `--dry-run` free of queue and repository mutations.
+- Keep the application database separate from future workflow checkpoints.
+  Version migrations and reject unknown databases or newer schemas.
+- Test changed behavior, failures, and trust boundaries. Use simulated HTTP and
+  temporary repositories; tests must never call a real AI API.
+- Add modules and dependencies when they become necessary. Remove abandoned
+  implementations and their tests while preserving relevant security coverage.
+- Write maintained documentation, user-facing messages, examples, and test
+  descriptions in English. Keep intentional Unicode test coverage.
 
-## Livraisons et retour arrière
+## Changes, pull requests, and rollbacks
 
-Créer une branche courte et des commits Conventional Commits, une responsabilité
-par commit. Avant une PR, exécuter les contrôles ci-dessus et mettre à jour
-`checkpoint.md`, les cases réellement couvertes de `roadmap.md` et les commandes
-disponibles dans le README. Ne cocher une validation opérationnelle qu'avec une
-  preuve réelle. Une source documentaire ou un transport simulé ne valide pas
-  l'accès d'un compte réel. Une génération de texte réussie ne valide pas une tâche Git.
+Use short branches and Conventional Commits, with one responsibility per commit.
+Before a PR, run the checks above and update `checkpoint.md`, completed roadmap
+items, and the README's available commands. Mark operational validation complete
+only with real evidence. Documentation and simulated transports do not establish
+real account access; successful text generation does not verify a Git task.
 
-Une PR décrit le changement, ses preuves de validation, ses limites et son
-retour arrière. Après publication, utiliser `git revert`, sans réécrire
-l'historique partagé. Sauvegarder séparément les données et les worktrees avant
-une évolution de schéma ; consulter [checkpoint.md](checkpoint.md).
+Use the PR template sections Summary, Evidence, and Merge Danger. Explain the
+behavior, validation, limitations, and rollback. Keep PR titles and descriptions
+in English. Merge only relevant changes, preserve commit history, and remove
+obsolete branches once their work is integrated or explicitly superseded.
+
+After publication, use `git revert` rather than rewriting shared history.
+Back up databases and unverified worktrees separately before schema changes.
+Git rollback does not restore `.env`, Keychain entries, or other local data;
+see [checkpoint.md](checkpoint.md).
