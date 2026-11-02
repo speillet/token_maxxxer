@@ -1,132 +1,104 @@
 # Checkpoints — token_maxxxer
 
-Mis à jour le 2 novembre 2026. Ce fichier suit les livraisons du code ; il ne
-remplace pas les checkpoints d'exécution LangGraph du futur jalon 4.
+Updated November 2, 2026. This file records code deliveries, validation, merge
+history, and rollback points. It does not replace future workflow checkpoints.
 
-## Cadrage actualisé
+## Current direction
 
-Le nom du dépôt, du paquet et de la commande est `token_maxxxer`. La demande
-actuelle remplace le cadrage initial centré sur un abonnement : Claude via clé
-API devient le premier backend, OpenAI rejoint l'interface commune et Copilot
-sera raccordé via son SDK/authentification GitHub officielle. Les preuves et
-commits précédents restent des points de retour historiques.
+The repository, package, and command are named `token_maxxxer`. Claude and OpenAI
+use explicit API credentials through `Provider`; Copilot will use its official
+SDK and authorized GitHub credentials. The original subscription-only CLI design
+has been retired. Historical implementations remain available in Git.
 
-## État du projet
-
-| Jalon | État | Preuves / suite |
+| Milestone | Status | Evidence and remaining work |
 | --- | --- | --- |
-| 0 — Fournisseurs API | Contrats définis, pilote réel ouvert | Clés API Claude/OpenAI ; aucun abonnement CLI requis, compte réel non sollicité |
-| 1 — Socle Python | Socle livré | Configuration, modèles, SQLite, CLI en lecture/simulation et tests locaux ; modules d'exécution aux jalons suivants |
-| 2 — Génération API | Implémentée, testée sur HTTP simulé | Claude et OpenAI derrière Provider ; Copilot à implémenter ; aucun agent modifiant du code raccordé |
-| 3 à 7 | À faire | Suivre `roadmap.md` ; aucune exécution Claude réelle dans ce lot |
+| 0 — Provider contracts | Defined; real-account pilot open | Official API contracts and simulated tests; no real account calls |
+| 1 — Python foundation | Delivered | Validated configuration, models, SQLite imports, diagnostics, previews |
+| 2 — API generation | Implemented | Claude/OpenAI adapters; Copilot not yet implemented |
+| 3–7 | Planned | Code-editing tools, worktrees, durable workflow, scheduling, services |
 
-Les validations utilisent des transports simulés et ne consomment pas les clés
-réelles. L'ancien parcours abonnement n'est plus le cadrage principal. Les
-générations API ne valident pas une tâche Git ; les outils et vérifications
-arrivent au jalon 3. Aucune fixture synthétique ne vaut preuve d'un appel réel.
+Text generation does not verify or complete a Git task. Tests use fictional
+credentials and simulated HTTP without billed calls. Repository documentation,
+messages, examples, and test descriptions are maintained in English.
 
-## Points de retour
+## Integration ledger
 
-| Repère | Révision | Contenu | Validation |
-| --- | --- | --- | --- |
-| CP-000 | `ad0992b` | README et roadmap d'origine | Arbre Git propre avant implémentation |
-| CP-001 | `0fdce5a` | Contrat externe et protocole de suivi | Sources officielles relues, limites locales consignées |
-| CP-002 | `26469a7` | Packaging verrouillé, YAML sûr, configuration et modèles | 31 tests ciblés configuration/modèles, Ruff et mypy |
-| CP-003 | `dbcb978` | Migration SQLite initiale, import atomique, ordre priorité/arrivée et lecture seule | 9 tests de file : concurrence d'import, rollback de lot, autorisation et conservation des états |
-| CP-004 | `9dcefaf` | Diagnostic sans inférence, import/liste, `run --dry-run` et JSON | 10 tests CLI ; 50 tests au total, paquet construit |
-| CP-005 | `425075f` | CI Python 3.11/3.13, conventions et documentation des commandes disponibles | Actions épinglées par SHA ; 50 tests locaux sur les deux versions et smoke CLI en processus séparés |
-| CP-006 | `e3f7f88` | Correction du constat P2 des revues Standards et Spec : chemins SQLite imbriqués et parent fichier refusés | 55 tests sur Python 3.11 ; correction confirmée par les deux revues |
-| CP-007 | `ae1ecf7` | Socle Python documenté, point de départ du jalon 2 | Arbre propre à la reprise ; PR #1 ouverte |
-| CP-008 | `552e051` | Classification conservatrice du JSON terminal, usage inconnu et diagnostics expurgés | 36 tests de résultats, fixtures synthétiques et credentials factices |
-| CP-009 | `ecb3b67` | stdin littéral, sorties séparées, délais, limites de sortie et arrêt des descendants | Tests POSIX, enfant ignorant SIGTERM, parent terminé et interruption clavier ; correctif macOS CP-011 nécessaire |
-| CP-010 | `819261c` | Interface ClaudeRunner, faux déterministe et précontrôles avant une seule invocation | 28 tests sur faux CLI local ; refus d'environnement incompatible, version différente et compte non confirmé |
-| CP-011 | `f352270` | Cas macOS EPERM sur groupe terminé : interruption initiale préservée, refus sur processus vivant conservé | Régression simulée et vraie interruption ; suite complète et build relancés |
-| CP-012 | `3cba885` | Corrections des revues : credentials cités/échappés et champs inconnus ; fins interrompues refusées | Régressions sur sérialisation complète, espaces, JSON tronqué et métadonnées reconnues |
-| CP-013 | `7195818` | Décodeur JSON unique, doublons refusés avant expurgation, credentials multilignes supprimés | 156 tests, Ruff, mypy et build ; constats Standards et Spec revérifiés et fermés |
-| CP-014 | `0342492` | Convention de référence locale au gestionnaire de credentials, exemple sans secret et livraison exécuteur | `.env` ignoré par Git et permissions locales 0600 ; aucune clé dans les fichiers suivis |
-| CP-015 | `f887f88` | Dernière révision de la PR #2, avant nouveau cadrage | Point de retour du nom et de l'ancien parcours abonnement |
-| CP-016 | `48ee353` | Nom cohérent du paquet, commande, exemples, stockage par défaut et références publiques | 156 tests et outils de qualité après renommage |
-| CP-017 | `e923570` | Interface Provider, SDK API, query explicite, doctor sans CLI, références de credentials résolues à la demande | 194 tests, transports HTTP simulés, limites, erreurs sans relance et références privées |
-| CP-018 | `9b010df` | Bornes de configuration fournisseur, chemin des références et masquage Claude/OpenAI/GitHub | 201 tests sur la suite complète |
-| CP-019 | `05bb7c2` | README et roadmap API, contrat multi-fournisseurs et ancien contrat CLI archivé | Documentation des limites et des commandes réellement disponibles |
-| CP-020 | `29a4e7b` | Constat P2 des revues : sortie OpenAI globalement complète mais message refusé/incomplet ; outils non raccordés refusés | 207 tests dont refus, états des messages, raisonnement incomplet et appels d'outil |
-| CP-021 | `0d057cc` | Constat P2 : ne pas envoyer une consigne tronquée, préserver l'indentation et refuser une entrée vide | 211 tests et quatre jobs CI verts sur macOS/Linux, Python 3.11/3.13 |
+| PR | Role | Decision |
+| --- | --- | --- |
+| [#1](https://github.com/speillet/token_maxxxer/pull/1) | Python foundation and persistent task queue | Merged into main as `2b38985`; four CI checks passed after retrying a cancelled job |
+| [#2](https://github.com/speillet/token_maxxxer/pull/2) | Retired subscription CLI prototype | Closed as superseded; shared work preserved through #3 |
+| [#3](https://github.com/speillet/token_maxxxer/pull/3) | Current name and Claude/OpenAI API providers | Retargeted to main and merged as `f7f5fb2`; four CI checks passed |
+| English/API cleanup | Remove dead code and unused dependencies; translate maintained content | Validate and merge through its own PR |
 
-## Livraison actuelle — token_maxxxer avec fournisseurs API
+The cleanup branch starts at `fc0a7c3`. It removes the old CLI adapter, its
+subprocess transport and authentication constants, terminal wire parser, fake
+CLI, obsolete fixtures/tests, and archived CLI contract. Shared redaction and
+API coverage remain. LangGraph, LangChain Core, and the graph SQLite checkpointer
+are deferred until their milestone is implemented.
 
-- Branche : `feat/token-maxxxer-api-providers`, basée sur la PR #2.
-- PR : [#3 — nom du dépôt et fournisseurs API configurables](https://github.com/speillet/token_maxxxer/pull/3).
-- Paquet, commande, imports et configuration portent le nom `token_maxxxer`.
-- Claude et OpenAI disposent d'adaptateurs SDK derrière `Provider` ; `query`
-  résout le credential choisi uniquement au moment de l'appel explicite.
-- Copilot est prévu via son SDK/token GitHub, mais reste indisponible à l'exécution.
-- 211 tests locaux sous Python 3.11 et 3.13 ; Ruff, mypy et build validés.
-  Les quatre jobs CI de la révision `0d057cc` ont réussi.
-- Revues Standards et Spec : les constats P2 sur les refus/incomplétudes et
-  les consignes tronquées sont corrigés et revérifiés ; aucun constat ouvert.
-- `doctor` et le CLI renommé vérifiés sans requête API ni lecture du secret.
-  Noms publics et fichiers suivis contrôlés ; `.env` reste privé et ignoré.
-- Aucun appel réel ou facturé effectué. L'agent de code, les worktrees et le
-  workflow planifié restent aux jalons suivants ; `query` génère du texte seulement.
+The API result is now `GenerationResult` in `results.py`. `response_id` replaces
+`session_id`; unused `exit_code`, `stdout`, and `stderr` fields are removed.
+The SQLite application ID and schema are unchanged, and local credentials and
+databases are preserved. After cleanup, 125 relevant tests pass locally; removed
+prototype tests account for the lower count compared with the earlier 211-test suite.
 
-## Livraison du socle
+## Rollback points
 
-- Branche : `feat/python-foundation`.
-- PR : [#1 — socle Python hors ligne](https://github.com/speillet/token_maxxxer/pull/1).
-- Validation locale : 55 tests sous Python 3.11 ; les 50 tests du lot initial
-  passaient aussi sous Python 3.13. Ruff, format, mypy strict, sdist et wheel
-  validés. Import de LangGraph, LangChain Core et `SqliteSaver` vérifié.
-- Smoke CLI en processus séparés : import, réimport, liste, simulation et
-  diagnostic ; tâche toujours `pending`, état Git inchangé, stockage temporaire.
-- Revue Standards : 1 constat P2, corrigé dans CP-006 et revérifié ; 0 ouvert.
-- Revue Spec : 1 constat P2, corrigé dans CP-006 et revérifié ; 0 ouvert.
-- CI distante : matrice macOS/Linux et Python 3.11/3.13 ; consulter les checks de
-  la PR pour le résultat attaché à la dernière révision.
+| Checkpoint | Revision | Scope and evidence |
+| --- | --- | --- |
+| CP-000 | `ad0992b` | Original README and roadmap; clean working tree before implementation |
+| CP-001 | `0fdce5a` | Initial external CLI contract and checkpoint protocol |
+| CP-002 | `26469a7` | Locked Python foundation, safe YAML, configuration and models; 31 targeted tests |
+| CP-003 | `dbcb978` | Initial SQLite migration, atomic imports and stable queue ordering; 9 queue tests |
+| CP-004 | `9dcefaf` | Initial diagnostics, imports, listing and previews; 50 total tests |
+| CP-005 | `425075f` | macOS/Linux CI with Python 3.11/3.13 and SHA-pinned actions |
+| CP-006 | `e3f7f88` | Reject nested SQLite paths and file parents; 55 tests |
+| CP-007 | `ae1ecf7` | Documented foundation, head of PR #1 |
+| CP-008 | `552e051` | Historical terminal-result normalization and redaction |
+| CP-009 | `ecb3b67` | Historical bounded subprocess transport; requires CP-011 macOS fix |
+| CP-010 | `819261c` | Historical qualified CLI adapter and deterministic fake |
+| CP-011 | `f352270` | Historical macOS process-group cleanup fix |
+| CP-012 | `3cba885` | Escaped JSON redaction, strict result fields and interrupted-output checks |
+| CP-013 | `7195818` | Duplicate JSON and multiline credential redaction; 156 tests |
+| CP-014 | `0342492` | Private credential reference convention and secret-free example |
+| CP-015 | `f887f88` | Final PR #2 head, before API-provider requirements |
+| CP-016 | `48ee353` | Rename package, command, imports and examples to token_maxxxer |
+| CP-017 | `e923570` | Claude/OpenAI SDK adapters, explicit query and private references; 194 tests |
+| CP-018 | `9b010df` | Provider selection, reference-path and credential-redaction tests; 201 tests |
+| CP-019 | `05bb7c2` | API README, roadmap and provider contract |
+| CP-020 | `29a4e7b` | Reject refused/incomplete output items and unsupported tool calls; 207 tests |
+| CP-021 | `0d057cc` | Reject oversized prompts before API access and preserve whitespace; 211 tests |
+| CP-022 | `fc0a7c3` | Final PR #3 head; four successful macOS/Linux CI jobs |
+| CP-023 | `2bbe5a7` | Retire unused code/dependencies and use English application messages; 125 retained tests |
+| CP-024 | Commit `docs: maintain repository documentation in English` | English README, roadmap, provider contract, contribution guide and checkpoint ledger |
 
-Chaque livraison ajoute ici son périmètre, ses vérifications et le nom du commit.
-Pour retrouver son SHA : `git log --oneline --all`. Les commits portent une seule
-responsabilité et utilisent Conventional Commits.
+Use `git log --all --oneline` to find the SHA for a checkpoint identified by
+commit subject. Earlier checkpoint source is recoverable even after its branch
+is removed because the integration preserves commit history.
 
-## Livraison de l'exécuteur hors ligne
+## Rollback procedure
 
-Historique de la PR #2, antérieur au cadrage API actuel :
-
-- Branche : `feat/claude-runner`, basée sur la PR #1 encore ouverte.
-- PR : [#2 — transport CLI qualifié et tests hors ligne](https://github.com/speillet/token_maxxxer/pull/2).
-- 156 tests sous Python 3.11 et 3.13 sur macOS ; Ruff, typage strict et
-  construction sdist/wheel validés. CI macOS/Linux attachée à la dernière révision de la PR.
-- Revue Standards : corrections des credentials échappés/dupliqués et du schéma
-  strict vérifiées ; aucun constat ouvert sur ce périmètre.
-- Revue Spec : correction des diagnostics expurgés vérifiée ; aucun constat ouvert.
-- Limites : CLI réel et pilote abonnement non qualifiés, pause durable et
-  gestionnaire SIGTERM du superviseur à raccorder avant activation/service.
-- Données locales : `.env` contient uniquement une référence, avec permissions
-  0600 ; le secret réside dans le gestionnaire de credentials du système. Aucun
-  chargement de `.env` ni appel API n'est activé dans le mode abonnement.
-
-## Retour arrière
-
-Pour inspecter un point sans toucher au travail courant :
+Inspect an old revision without changing the current working tree:
 
 ```bash
-git worktree add --detach ../token_maxxxer-cp000 ad0992b
+git worktree add --detach ../token_maxxxer-cp022 fc0a7c3
 ```
 
-Pour annuler un commit publié, créer une branche puis un commit inverse avec
-`git revert <sha>`, lancer les vérifications et ouvrir une PR. Annuler les commits
-dépendants du plus récent au plus ancien. Conserver l'historique partagé.
+For a published code rollback, create a branch, run `git revert <sha>` from newest
+to oldest for dependent changes, rerun validation, and open a PR. For a merge
+commit, inspect its parents and use `git revert -m 1 <merge-sha>` when reverting
+the change introduced to main. Do not rewrite shared history.
 
-Les données locales (`var/`, worktrees, rapports) sont exclues de Git : un revert
-de code ne les restaure pas. Avant une migration future, arrêter le service et
-effectuer une sauvegarde SQLite avec son API `backup` ; conserver aussi les
-worktrees non validés. La migration initiale n'a pas de downgrade destructif.
-Le rollback Git ne modifie ni `.env` ni le trousseau système ; gérer séparément
-ces données locales si leur suppression ou leur rotation est nécessaire.
+Git does not restore local `.env` files, Keychain entries, databases, reports,
+or unverified worktrees. Back up SQLite through its backup API before future
+schema changes, and preserve unverified work separately. The initial migration
+has no destructive downgrade. Credential rotation and local cleanup are separate
+from source rollback.
 
-## Prochaine reprise
+## Next work
 
-1. Consulter la PR du renommage et des fournisseurs API, ainsi que ses contrôles CI.
-2. Qualifier les comptes avec des clés renouvelées lors d'un appel explicitement voulu.
-3. Construire les outils et worktrees du jalon 3 avant de raccorder run --once.
-4. Ajouter l'adaptateur Copilot SDK avec son authentification GitHub officielle.
-5. Raccorder workflow durable, pauses et planning aux jalons suivants.
+1. Confirm the integration and cleanup PRs are reflected on main and remove superseded branches.
+2. Qualify real accounts only during an explicitly requested call with renewed credentials.
+3. Implement typed code tools, approved worktrees and verification before run --once.
+4. Add the Copilot SDK adapter with explicit GitHub authentication.
+5. Install and implement the durable workflow, pauses, scheduling and services at their milestones.

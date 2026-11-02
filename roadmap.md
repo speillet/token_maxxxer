@@ -1,94 +1,96 @@
 # Roadmap — token_maxxxer
 
-Cadrage actualisé le 2 novembre 2026 : le dépôt s'appelle `token_maxxxer` et
-utilise des clés API. Claude est le premier fournisseur ; OpenAI partage le
-même contrat ; GitHub Copilot sera ajouté via son SDK et son authentification
-GitHub. Ce cadrage remplace la dépendance initiale à un abonnement Claude Pro.
-Historique, validations et rollbacks : [checkpoint.md](checkpoint.md).
+Updated November 2, 2026. `token_maxxxer` uses explicit API credentials: Claude
+first, OpenAI through the same provider contract, and a planned GitHub Copilot
+SDK integration. This replaces the initial subscription-only CLI design.
+Progress, merge history, and rollback points live in [checkpoint.md](checkpoint.md).
 
-## 0 — Contrats fournisseurs et accès
+## 0 — Provider contracts and account access
 
-- [x] Documenter les API officielles Claude Messages et OpenAI Responses.
-- [x] Définir un port Provider indépendant du fournisseur et des résultats normalisés.
-- [x] Définir les références privées de credentials et le diagnostic sans réseau.
-- [ ] Qualifier les appels réels avec des clés renouvelées et des modèles autorisés.
-- [ ] Qualifier Copilot : SDK officiel, token GitHub autorisé et droits du compte.
+- [x] Document official Claude Messages and OpenAI Responses integrations.
+- [x] Define a provider-independent interface and normalized generation results.
+- [x] Add private credential references and network-free diagnostics.
+- [ ] Qualify real accounts using renewed credentials and authorized models.
+- [ ] Qualify Copilot SDK authentication, GitHub tokens, and account permissions.
 
-Les transports simulés permettent de développer sans appel facturé. Ils ne
-valident pas les droits, limites ou coûts d'un compte réel.
+Simulated transports allow development without billed calls. They do not prove
+real account permissions, quotas, or costs.
 
-## 1 — Socle Python
+## 1 — Python foundation
 
-- [x] Paquet, commande, imports et exemples nommés `token_maxxxer`.
-- [x] Dépendances verrouillées, modèles et configuration validés.
-- [x] Import YAML idempotent et atomique, ordre priorité puis arrivée.
-- [x] Migration initiale SQLite et séparation des bases applicative/checkpoints.
-- [x] Doctor, liste et simulation sans effet sur la file ou les dépôts.
-- [x] Ruff, typage strict, tests et CI macOS/Linux.
+- [x] Name the package, command, imports, and examples `token_maxxxer`.
+- [x] Lock dependencies and validate configuration and domain models.
+- [x] Import tasks atomically and idempotently, ordered by priority then arrival.
+- [x] Version the initial SQLite schema and separate future checkpoint locations.
+- [x] Provide read-only diagnostics, task listing, and selection previews.
+- [x] Run Ruff, strict typing, tests, and macOS/Linux CI.
+- [x] Remove the retired CLI implementation and dependencies that are not used.
+- [x] Maintain repository documentation, messages, examples, and test data in English.
 
-## 2 — Adaptateurs de génération API
+## 2 — API generation adapters
 
-- [x] Claude : SDK officiel avec clé API, consigne texte et tokens observés.
-- [x] OpenAI : Responses API via SDK officiel, sans stockage demandé de la réponse.
-- [x] Une commande query explicite, sans exécution locale ni mutation de tâche.
-- [x] Timeout HTTP, plafond de sortie et aucune relance automatique.
-- [x] Classification auth, quota, timeout, réseau et résultat incomplet.
-- [x] Références Trousseau macOS, variables d'environnement et diagnostics expurgés.
-- [x] Tests HTTP simulés, aucune requête réelle dans la suite.
-- [ ] Ajouter l'adaptateur GitHub Copilot derrière le même port.
+- [x] Claude: official SDK, API keys, text prompts, and usage observations.
+- [x] OpenAI: official Responses SDK with response storage disabled in the request.
+- [x] An explicit query command without local code execution or task mutations.
+- [x] HTTP timeouts, output-token limits, and no automatic retries or fallback.
+- [x] Classify authentication, quota, timeout, network, and incomplete-output failures.
+- [x] Resolve private Keychain references or process keys only when needed.
+- [x] Test simulated HTTP without real AI API calls.
+- [ ] Add the GitHub Copilot adapter behind the same provider interface.
 
-Une génération terminée ne vaut pas tâche de développement vérifiée. Les
-paramètres du modèle sont explicites et aucun fournisseur de secours n'est choisi.
+A completed generation does not verify a development task. Model settings are
+explicit and an error never switches the selected provider.
 
-## 3 — Agent de code, Git et vérification
+## 3 — Code agent, Git isolation, and verification
 
-- [ ] Construire la boucle d'outils typés autour du fournisseur choisi.
-- [ ] Limiter lecture, écriture et commandes aux opérations explicitement approuvées.
-- [ ] Préparer un worktree et une branche stables depuis une base Git explicite.
-- [ ] Préserver l'arbre principal et refuser les collisions.
-- [ ] Exécuter les vérifications configurées avec timeout et journaux séparés.
-- [ ] Conserver le diff, les échecs et les travaux non validés.
-- [ ] Utiliser needs_review si des critères restent humains ; aucun merge automatique.
-- [ ] Raccorder run --once seulement après ces contrôles et un pilote réversible.
+- [ ] Build the provider-backed loop for typed development tools.
+- [ ] Restrict reading, writing, and commands to explicitly approved operations.
+- [ ] Prepare a stable task branch and worktree from an explicit Git base.
+- [ ] Preserve the main working tree and reject branch or path collisions.
+- [ ] Run configured verification commands with timeouts and separate logs.
+- [ ] Retain diffs, failures, and unverified work.
+- [ ] Use needs_review for human acceptance criteria; never merge automatically.
+- [ ] Connect run --once only after these controls and a reversible pilot.
 
-## 4 — Workflow durable et reprise
+## 4 — Durable workflow and recovery
 
-- [ ] Nœuds LangGraph déterministes : sélection, préparation, exécution, vérification, classement et rapport.
-- [ ] Checkpointer SQLite, thread stable et version du schéma d'état.
-- [ ] Journal de tentative avant chaque effet externe et résultat durable dès réception.
-- [ ] Acquisition atomique, verrou local et commandes pause/reprise/annulation.
-- [ ] Auth expirée mise en pause ; reprise d'une tâche ambiguë soumise à revue.
-- [ ] Tests de crash avant, pendant et après le résultat ; aucun double lancement observé.
+- [ ] Install LangGraph, LangChain Core, and the compatible checkpointer when implementing this milestone.
+- [ ] Add deterministic selection, preparation, execution, verification, classification, and reporting nodes.
+- [ ] Use a SQLite checkpointer, stable thread IDs, and a versioned state schema.
+- [ ] Journal attempts before external effects and persist results immediately.
+- [ ] Add atomic acquisition, a local service lock, and pause/resume/cancel commands.
+- [ ] Pause expired authentication and require review of ambiguous executions.
+- [ ] Test crashes before launch, during work, and after results; observe no duplicate launches.
 
-## 5 — Planning, quotas et budgets
+## 5 — Scheduling, quota handling, and budgets
 
-- [ ] Fenêtres IANA semi-ouvertes avec minuit, fusion des chevauchements et changements d'heure.
-- [ ] Contrôle avant lancement et watchdog jusqu'à la fermeture, grâce comprise.
-- [ ] Pause sur quota avec reprise fiable ou backoff borné, sans rafale.
-- [ ] Persist next_retry_at et compteurs ; aucun reset des plafonds au redémarrage.
-- [ ] Temps actif et budgets API configurables, avec incertitudes de coût explicites.
-- [ ] Gestion des arrêts du superviseur et de ses sous-processus.
+- [ ] Implement half-open IANA windows, midnight crossing, overlap merging, and DST.
+- [ ] Check before launch and maintain a watchdog through closing, including shutdown grace.
+- [ ] Pause on quota with a reliable reset or bounded backoff, never rapid retries.
+- [ ] Persist next_retry_at and counters across restarts.
+- [ ] Configure active-time and API budgets with explicit cost uncertainty.
+- [ ] Handle supervisor signals and terminate owned subprocess groups.
 
-## 6 — Services et rapports
+## 6 — Services and reports
 
-- [ ] launchd utilisateur et systemd --user avec environnement explicite.
-- [ ] Résolution des credentials sans interaction silencieuse en arrière-plan.
-- [ ] Installation, démarrage, arrêt et désinstallation propres.
-- [ ] Rapports Markdown et logs JSONL avec rotation et contrôle des secrets.
-- [ ] Documenter veille/réveil et conserver tous les travaux non validés.
+- [ ] Add user launchd and systemd services with explicit environments.
+- [ ] Resolve credentials without silent background authentication prompts.
+- [ ] Support clean installation, start, stop, inspection, and removal.
+- [ ] Produce Markdown reports and rotating JSONL logs with secret checks.
+- [ ] Document sleep/wake behavior and retain all unverified work.
 
-## 7 — Pilote et version 0.1
+## 7 — Pilot and version 0.1
 
-- [ ] Tâche simple dans un dépôt de démonstration, puis courte fenêtre planifiée.
-- [ ] Trois tâches indépendantes : réussite, vérification en échec et reprise.
-- [ ] Simuler quota, réseau, auth expirée, arrêt/redémarrage et veille/réveil.
-- [ ] Valider macOS/Linux, résultats vérifiables, absence de duplication et consommation expliquée.
-- [ ] Publier une version locale 0.1 après validation du MVP complet.
+- [ ] Run a simple task in a demonstration repository, then a short scheduled window.
+- [ ] Run independent tasks covering success, failed verification, and recovery.
+- [ ] Simulate quota, network, expired authentication, service restarts, and sleep/wake.
+- [ ] Validate macOS/Linux, verifiable results, no observed duplication, and explained consumption.
+- [ ] Publish a local 0.1 release only after the complete MVP is validated.
 
-## Après le MVP
+## After the MVP
 
-- [ ] Issues GitHub explicitement sélectionnées, déduplication et dépendances.
-- [ ] Estimation de taille et sélection des tâches adaptées au créneau.
-- [ ] Tableau de bord local et estimation de réserve avec incertitudes.
-- [ ] PR optionnelles à partir de résultats validés.
-- [ ] Concurrence seulement après mesure de son utilité et gestion des conflits.
+- [ ] Import explicitly selected GitHub issues with deduplication and dependencies.
+- [ ] Estimate task size and select work that fits the available window.
+- [ ] Add a local dashboard and reserve estimates with stated uncertainty.
+- [ ] Optionally create PRs from verified results.
+- [ ] Add concurrency only after measuring its value and resolving Git conflicts.

@@ -1,29 +1,29 @@
 # token_maxxxer
 
-Orchestrateur local de tâches de développement, avec un fournisseur IA
-configurable : **Claude via clé API**, **OpenAI via clé API**, puis
-**GitHub Copilot via son SDK et un token GitHub autorisé**.
+A local development-task toolkit with configurable AI providers: **Claude API**,
+**OpenAI API**, and a planned **GitHub Copilot SDK** integration.
 
-Le paquet Python, la commande et le dépôt portent le nom `token_maxxxer`.
-Python 3.11+, macOS et Linux. [Roadmap](roadmap.md) · [Checkpoints et rollbacks](checkpoint.md).
+The repository, Python package, and command are named `token_maxxxer`.
+Python 3.11+, macOS and Linux. [Roadmap](roadmap.md) · [Checkpoints and rollbacks](checkpoint.md).
 
-## État actuel
+## Current capabilities
 
-| Fonction | État |
+| Capability | Status |
 | --- | --- |
-| Configuration Pydantic, modèles, import YAML et file SQLite | Disponible |
-| Diagnostic, liste et simulation sans requête API | Disponible |
-| Génération de texte Claude / OpenAI par API officielle | Disponible avec `query`, testée sur HTTP simulé |
-| Stockage privé et résolution des références de credentials | Disponible |
-| GitHub Copilot | Interface prévue ; adaptateur SDK à implémenter |
-| Agent modifiant du code, worktrees, tests métier | À implémenter |
-| Workflow LangGraph durable, planning et services | À implémenter |
+| Validated configuration and domain models | Available |
+| Atomic, idempotent YAML imports and a SQLite task queue | Available |
+| Read-only diagnostics, task listing, and previews | Available |
+| Claude and OpenAI text generation | Available through `query`; tested with simulated HTTP |
+| Private credential references | Available |
+| GitHub Copilot | Planned; selecting it returns an explicit unsupported-provider error |
+| Code-editing agent, Git worktrees, and task verification | Planned |
+| Durable workflow, scheduling, and system services | Planned |
 
-`query` produit une réponse texte. Elle ne lit pas le dépôt, n'applique pas de
-patch, ne lance pas de commande et ne marque aucune tâche comme réussie.
-Les tests ne font aucun appel facturé et ne prouvent pas l'accès d'un compte réel.
+`query` returns generated text. It does not read or edit a repository, run local
+commands, or mark a task as successful. Tests use simulated responses and do not
+verify access to a real provider account or incur API charges.
 
-## Installation et premiers contrôles
+## Install and inspect
 
 ```bash
 uv sync --locked
@@ -34,20 +34,21 @@ uv run token_maxxxer --config examples/token_maxxxer.yaml tasks list
 uv run token_maxxxer --config examples/token_maxxxer.yaml run --dry-run
 ```
 
-L'exemple autorise la racine de ce dépôt et utilise `var/token_maxxxer.sqlite`.
-Adapter les chemins et tâches avant une utilisation réelle. Les chemins relatifs
-sont résolus depuis leur fichier YAML ; sans `--config`, le fichier attendu est
-`./token_maxxxer.yaml`. Les fichiers privés de configuration sont ignorés par Git.
+The example allows this repository root and stores tasks in
+`var/token_maxxxer.sqlite`. Adjust repository paths and tasks before using your
+own projects. Relative paths resolve from their YAML file, including default
+storage paths. Without `--config`, the command expects `./token_maxxxer.yaml`.
+Private configuration files are excluded from Git.
 
-`doctor` vérifie Git, les racines autorisées, les emplacements, le fournisseur et
-la présence d'une clé ou référence. Il ne récupère pas le secret du Trousseau,
-ne contacte aucune API et ne valide pas la clé auprès du fournisseur. Claude
-Code et un abonnement Claude ne sont pas nécessaires au parcours API.
+`doctor` checks Git, allowed repository roots, storage locations, provider
+settings, and whether a credential or reference is configured. It does not read
+a Keychain secret, call a provider API, or authenticate the configured key.
+Claude Code and a Claude subscription are not required.
 
-## Choisir le fournisseur
+## Select a provider
 
-La configuration complète est dans [examples/token_maxxxer.yaml](examples/token_maxxxer.yaml).
-Le modèle est obligatoire : aucun modèle ni fournisseur n'est substitué automatiquement.
+The complete example is [examples/token_maxxxer.yaml](examples/token_maxxxer.yaml).
+A model is required. The application never substitutes a model or provider.
 
 ```yaml
 provider:
@@ -61,7 +62,7 @@ authentication:
   env_file: ../.env
 ```
 
-Pour OpenAI, remplacer le bloc fournisseur par :
+For OpenAI, replace the provider block with:
 
 ```yaml
 provider:
@@ -71,101 +72,102 @@ provider:
   timeout_seconds: 60
 ```
 
-Les modèles d'exemple sont configurables ; vérifier leur accès dans le compte.
-Une clé API utilise le compte API correspondant. Le plafond de sortie borne les
-tokens demandés et ne garantit pas un montant exact de facturation.
-Les adaptateurs n'effectuent aucune relance automatique et n'appellent pas un
-second fournisseur en cas d'erreur.
+Model identifiers are configurable examples; verify access in your provider
+account. An API key uses that account's API allocation. The output-token limit
+does not guarantee an exact financial budget. Neither adapter retries
+requests automatically or falls back to another provider after an error.
 
-## Credentials sans secret dans Git
+## Keep credentials outside Git
 
-Deux sources sont prises en charge pour le fournisseur sélectionné :
+Only credentials for the selected provider are considered, in this order:
 
-1. Une variable d'environnement du processus : `ANTHROPIC_API_KEY` pour Claude,
-   `OPENAI_API_KEY` pour OpenAI.
-2. Une référence au gestionnaire de credentials, dans l'environnement ou dans
-   le `.env` local. Les références d'environnement passent avant celles du fichier.
+1. A process environment variable: `ANTHROPIC_API_KEY` for Claude or
+   `OPENAI_API_KEY` for OpenAI.
+2. A private credential reference in the environment or local `.env` file.
+   Environment references take priority over file references.
 
 ```dotenv
 TOKEN_MAXXXER_CLAUDE_CREDENTIAL_REF=keychain://token_maxxxer.claude.api/token_maxxxer
 # TOKEN_MAXXXER_OPENAI_CREDENTIAL_REF=keychain://token_maxxxer.openai.api/token_maxxxer
 ```
 
-Les services et comptes sont ceux des entrées du Trousseau macOS. Une référence
-existante reste utilisable, même si son service conserve un ancien identifiant.
-`query` récupère uniquement le credential du fournisseur sélectionné, au moment
-de la requête. Sur Linux, fournir la clé dans l'environnement du processus ;
-les références au Trousseau macOS ne sont pas disponibles.
+The service and account identify entries in macOS Keychain. Existing references
+remain valid even when they use an older service identifier. `query` retrieves
+only the selected provider's credential, immediately before its explicit API
+request. On Linux, supply the key through the process environment; macOS
+Keychain references are not supported there.
 
-Le lecteur de `.env` accepte uniquement les références connues, sans exécuter
-le fichier, interpoler des valeurs ou modifier l'environnement global. Il refuse
-les clés API en texte clair dans ce fichier. Conserver les permissions `0600`.
-Seul [.env.example](.env.example), sans secret, est versionné. Une rotation de clé
-se fait dans le gestionnaire de credentials ou l'environnement, jamais dans Git.
+The `.env` reader handles known references without executing the file,
+interpolating values, or changing the global environment. It rejects plaintext
+API key values in that file. Keep local file permissions at `0600`.
+Only [.env.example](.env.example), which contains no secret, is tracked.
+Rotate keys in the credential manager or process environment, never in Git.
 
-## Envoyer une consigne par API
+## Generate text
 
-Après avoir configuré une clé et un modèle, créer un fichier UTF-8 contenant la
-consigne, puis lancer explicitement :
+After configuring a key and model, create a UTF-8 prompt file and explicitly run:
 
 ```bash
-uv run token_maxxxer --config examples/token_maxxxer.yaml query --prompt-file consigne.txt
+uv run token_maxxxer --config examples/token_maxxxer.yaml query --prompt-file prompt.txt
 ```
 
-La commande envoie la consigne au fournisseur configuré ; elle peut donc consommer
-son allocation API. `--prompt-file -` lit stdin, et `--json` restitue le résultat
-normalisé, les tokens observés et les diagnostics expurgés. Les valeurs d'usage
-absentes restent inconnues ; elles ne deviennent pas zéro. Les réponses tronquées,
-refusées ou en erreur ne sont pas des réussites.
-La consigne conserve son indentation ; au-delà de 1 048 576 caractères, elle est
-refusée avant résolution du credential et avant tout envoi, sans troncature silencieuse.
+This command sends the prompt to the configured provider and can consume its API
+allocation. Use `--prompt-file -` to read stdin and `--json` for the normalized
+result: `status`, `response_id`, `text`, `error_code`, `duration_seconds`, and
+optional `usage`. Missing usage stays unknown rather than becoming zero.
+Refusals, errors, incomplete messages, and unsupported tool calls are not successes.
 
-Pour vérifier la configuration sans requête réseau, utiliser `doctor` ou
-`run --dry-run`. Ces commandes ainsi que `tasks list` ne créent pas de base et ne
-modifient ni la file ni les dépôts.
+Prompt indentation and whitespace are preserved. Prompts longer than 1,048,576
+characters are rejected before credential resolution or API access; they are
+never silently truncated.
 
-## File de tâches
+Use `doctor` or `run --dry-run` to inspect configuration without an API request.
+These commands and `tasks list` do not create a database or modify the queue or
+repositories. Exit codes are `0` for success, `1` for a failed diagnostic or API
+result, and `2` for invalid input or storage.
 
-Les tâches doivent être explicites et provenir d'un YAML de confiance. Chaque
-tâche indique un identifiant stable, une racine Git autorisée, une base, une
-consigne, des critères d'acceptation et des commandes de vérification sous forme
-de listes d'arguments. Voir [examples/tasks.yaml](examples/tasks.yaml).
+## Task queue
 
-Une priorité supérieure passe d'abord ; à égalité, l'ordre d'arrivée s'applique.
-Un réimport identique ne duplique pas la tâche. Réutiliser un identifiant avec
-une autre définition refuse le lot entier. Les sous-répertoires ne sont pas
-implicitement autorisés par l'autorisation d'une racine.
+Import only explicit tasks from trusted YAML. Each task declares a stable ID,
+an allowed repository root, an explicit Git base, a prompt, acceptance criteria,
+and verification commands expressed as argument arrays. See
+[examples/tasks.yaml](examples/tasks.yaml).
 
-Les commandes `run --once`, pause/reprise, rapports et services arrivent aux
-jalons suivants. L'exécution future préparera un worktree par tâche, donnera aux
-fournisseurs des outils explicitement autorisés et n'acceptera une réussite
-qu'après vérification. Aucune tâche artificielle n'est créée pour consommer des tokens.
+Higher priority runs first; ties preserve arrival order. Reimporting an identical
+task creates no duplicate. Reusing an ID for a different definition rejects the
+entire batch. Allowing a repository root does not implicitly allow subdirectories.
+
+`run --once`, pause/resume, reports, and services are not implemented yet. Future
+execution will prepare a worktree per task, expose explicitly approved tools,
+and require verification before declaring a task successful. An empty queue
+ends work; the application does not invent tasks to consume tokens.
 
 ## Architecture
 
 ```text
 src/token_maxxxer/
-├── config.py, models.py       # configuration et données validées
-├── credentials.py            # références privées, résolution à la demande
-├── providers.py              # Provider, Claude Messages et OpenAI Responses
-├── queue.py, storage.py       # import atomique et SQLite versionné
-├── cli.py, doctor.py          # commandes utilisateur et diagnostic sans réseau
-└── process.py, redaction.py   # processus bornés et diagnostics expurgés
+├── config.py, models.py       # validated configuration and domain data
+├── credentials.py            # private references and on-demand resolution
+├── providers.py              # Provider, Claude Messages, OpenAI Responses
+├── results.py                # shared generation results and public diagnostics
+├── queue.py, storage.py       # atomic imports and versioned SQLite
+├── cli.py, doctor.py          # user commands and read-only diagnostics
+└── json_io.py, redaction.py   # strict JSON handling and credential redaction
 ```
 
-LangGraph et LangChain Core sont installés pour le futur workflow déterministe.
-Les checkpoints du graphe utiliseront une base distincte de la file applicative.
-Le prototype Claude Code de la PR #2 reste testé comme intégration historique,
-mais le parcours principal utilise les API. Son contrat est archivé dans
-[docs/archive/claude-cli-contract.md](docs/archive/claude-cli-contract.md).
+The retired subscription CLI transport, subprocess runner, wire parser, fixtures,
+and archived CLI contract have been removed. Their history remains available
+through Git checkpoints. LangGraph, LangChain Core, and a graph checkpointer
+will be installed when the durable workflow is implemented, rather than kept as
+unused dependencies. The application database and future workflow checkpoints
+have separate configured locations.
 
-Copilot utilisera le même port `Provider`, avec un adaptateur propre à son SDK
-et à son authentification GitHub. `provider.name: copilot` est reconnu mais
-refusé à l'exécution tant que l'adaptateur n'est pas livré ; aucune URL privée
-Copilot ni récupération implicite des credentials de `gh` n'est utilisée.
-Contrats et sources officielles : [docs/providers.md](docs/providers.md).
+Copilot will use the same `Provider` interface with its official SDK and GitHub
+authentication. `provider.name: copilot` is recognized but rejected until that
+adapter is implemented. No private Copilot endpoint or implicit reuse of `gh`
+credentials is used. See [provider contracts](docs/providers.md).
 
-## Développement et migration
+## Development and migration
 
 ```bash
 uv run ruff format --check
@@ -175,14 +177,17 @@ uv run pytest -q
 uv build --no-sources
 ```
 
-Les tests utilisent des transports HTTP simulés, un faux CLI et des dépôts
-temporaires. La CI couvre Python 3.11/3.13 sur macOS et Linux.
-Conventions : [CONTRIBUTING.md](CONTRIBUTING.md).
+Tests use simulated HTTP and temporary repositories. CI covers Python 3.11 and
+3.13 on macOS and Linux. See [CONTRIBUTING.md](CONTRIBUTING.md).
+All maintained documentation, code messages, examples, and test descriptions
+are written in English. Prompts and generated responses may use any language.
 
-Depuis le prototype, mettre à jour les imports, la commande et la configuration
-vers `token_maxxxer`, ajouter `provider` et passer `authentication.mode` à
-`api_key`. Les variables de référence portent désormais le préfixe
-`TOKEN_MAXXXER_`. Aucune donnée locale ni entrée de Trousseau n'est renommée ou
-supprimée automatiquement. Pour conserver une ancienne base, garder son chemin
-explicite dans `storage.database` ; l'identifiant et le schéma SQLite restent
-compatibles. Sauvegarder les données séparément avant tout changement.
+From the prototype, update imports, commands, and configuration to
+`token_maxxxer`, add `provider`, and set `authentication.mode` to `api_key`.
+Credential reference variables use the `TOKEN_MAXXXER_` prefix. The shared
+result type is now `GenerationResult`; `response_id` replaces the misleading
+`session_id`, and unused subprocess fields have been removed.
+
+No local data or Keychain entry is automatically renamed or deleted. To retain
+an existing database, keep its explicit path in `storage.database`; its SQLite
+application ID and schema remain compatible. Back up local data separately.
