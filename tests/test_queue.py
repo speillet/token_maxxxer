@@ -5,11 +5,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from nightshift.config import load_config
-from nightshift.models import TaskStatus
-from nightshift.queue import import_document, preview_next
-from nightshift.storage import SCHEMA_VERSION, StorageError, TaskConflictError, TaskStore
-from nightshift.yaml_io import DocumentError
+from token_maxxxer.config import load_config
+from token_maxxxer.models import TaskStatus
+from token_maxxxer.queue import import_document, preview_next
+from token_maxxxer.storage import SCHEMA_VERSION, StorageError, TaskConflictError, TaskStore
+from token_maxxxer.yaml_io import DocumentError
 
 
 def write_tasks(path: Path, tasks: list) -> Path:

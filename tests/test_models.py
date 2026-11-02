@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta, timezone
 import pytest
 from pydantic import ValidationError
 
-from nightshift.models import Attempt, ExecutionState, Task, UsageObservation
+from token_maxxxer.models import Attempt, ExecutionState, Task, UsageObservation
 
 
 @pytest.mark.parametrize("task_id", ["../escape", "-option", "with space", "UPPER", "x" * 65])

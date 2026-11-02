@@ -1,7 +1,15 @@
-# Checkpoints — Claude Nightshift
+# Checkpoints — token_maxxxer
 
 Mis à jour le 2 novembre 2026. Ce fichier suit les livraisons du code ; il ne
 remplace pas les checkpoints d'exécution LangGraph du futur jalon 4.
+
+## Cadrage actualisé
+
+Le nom du dépôt, du paquet et de la commande est `token_maxxxer`. La demande
+actuelle remplace le cadrage initial centré sur un abonnement : Claude via clé
+API devient le premier backend, OpenAI rejoint l'interface commune et Copilot
+sera raccordé via son SDK/authentification GitHub officielle. Les preuves et
+commits précédents restent des points de retour historiques.
 
 ## État du projet
 
@@ -35,6 +43,8 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | CP-012 | `3cba885` | Corrections des revues : credentials cités/échappés et champs inconnus ; fins interrompues refusées | Régressions sur sérialisation complète, espaces, JSON tronqué et métadonnées reconnues |
 | CP-013 | `7195818` | Décodeur JSON unique, doublons refusés avant expurgation, credentials multilignes supprimés | 156 tests, Ruff, mypy et build ; constats Standards et Spec revérifiés et fermés |
 | CP-014 | `0342492` | Convention de référence locale au gestionnaire de credentials, exemple sans secret et livraison exécuteur | `.env` ignoré par Git et permissions locales 0600 ; aucune clé dans les fichiers suivis |
+| CP-015 | `f887f88` | Dernière révision de la PR #2, avant nouveau cadrage | Point de retour du nom et de l'ancien parcours abonnement |
+| CP-016 | Commit `refactor!: rename package and CLI to token_maxxxer` | Nom cohérent du paquet, commande, exemples, stockage par défaut et références publiques | Suite existante et outils de qualité après renommage |
 
 ## Livraison du socle
 
@@ -74,7 +84,7 @@ responsabilité et utilisent Conventional Commits.
 Pour inspecter un point sans toucher au travail courant :
 
 ```bash
-git worktree add --detach ../nightshift-cp000 ad0992b
+git worktree add --detach ../token_maxxxer-cp000 ad0992b
 ```
 
 Pour annuler un commit publié, créer une branche puis un commit inverse avec

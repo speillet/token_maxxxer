@@ -4,9 +4,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
 
-from nightshift.json_io import load_unique_json
-from nightshift.models import Model, NonNegativeInt, UsageObservation, utc_now
-from nightshift.redaction import redact
+from token_maxxxer.json_io import load_unique_json
+from token_maxxxer.models import Model, NonNegativeInt, UsageObservation, utc_now
+from token_maxxxer.redaction import redact
 
 RunnerStatus = Literal[
     "success",

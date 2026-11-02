@@ -9,10 +9,10 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
 
-from nightshift.authentication import API_CONFIGURATION_VARIABLES
-from nightshift.config import Config
-from nightshift.json_io import load_unique_json
-from nightshift.storage import TaskStore
+from token_maxxxer.authentication import API_CONFIGURATION_VARIABLES
+from token_maxxxer.config import Config
+from token_maxxxer.json_io import load_unique_json
+from token_maxxxer.storage import TaskStore
 
 
 @dataclass(frozen=True)

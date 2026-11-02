@@ -1,4 +1,4 @@
-# Claude Nightshift
+# token_maxxxer
 
 > Orchestrateur personnel de tâches de développement avec LangGraph, LangChain et Claude Code, sur macOS et Linux.
 
@@ -16,14 +16,14 @@ Les dépendances sont verrouillées dans `uv.lock`.
 
 ```bash
 uv sync --locked
-uv run nightshift --config examples/nightshift.yaml doctor
-uv run nightshift --config examples/nightshift.yaml tasks import examples/tasks.yaml
-uv run nightshift --config examples/nightshift.yaml tasks list
-uv run nightshift --config examples/nightshift.yaml run --dry-run
+uv run token_maxxxer --config examples/token_maxxxer.yaml doctor
+uv run token_maxxxer --config examples/token_maxxxer.yaml tasks import examples/tasks.yaml
+uv run token_maxxxer --config examples/token_maxxxer.yaml tasks list
+uv run token_maxxxer --config examples/token_maxxxer.yaml run --dry-run
 ```
 
 Les exemples autorisent la racine de ce dépôt et ajoutent une tâche de
-démonstration à `var/nightshift.sqlite`. Ils ne modifient aucun fichier du dépôt
+démonstration à `var/token_maxxxer.sqlite`. Ils ne modifient aucun fichier du dépôt
 et n'exécutent ni la tâche ni ses commandes de vérification. Adapter les dépôts,
 consignes et tests avant utilisation réelle. Un chemin relatif est résolu depuis
 son fichier YAML, y compris les chemins de stockage par défaut.
@@ -45,7 +45,7 @@ implicitement. N'importer que des fichiers de tâches de confiance.
 
 Chaque commande accepte `--json` après son nom. Codes de sortie : `0` pour une
 opération réussie, `1` pour un diagnostic en échec, `2` pour une entrée ou une
-base invalide. Sans `--config`, le chemin attendu est `./nightshift.yaml`.
+base invalide. Sans `--config`, le chemin attendu est `./token_maxxxer.yaml`.
 Le YAML rejette les champs inconnus, clés dupliquées, alias et documents > 1 Mio.
 
 Les commandes `run --once`, `status`, `pause`, `resume`, `report` et `service`
@@ -57,8 +57,8 @@ Les fichiers `.env` et `.env.*` locaux sont exclus de Git ; seul
 [`.env.example`](.env.example) est suivi. Pour conserver un credential sans texte
 clair sur disque, placer le secret dans le gestionnaire de credentials du système
 (Trousseau sur macOS) et seulement sa référence dans `.env`, avec des permissions
-`0600`. La référence `NIGHTSHIFT_CLAUDE_CREDENTIAL_REF` est une convention locale
-de stockage : Nightshift ne charge pas `.env` et ne résout pas cette référence.
+`0600`. La référence `TOKEN_MAXXXER_CLAUDE_CREDENTIAL_REF` est une convention locale
+de stockage : token_maxxxer ne charge pas `.env` et ne résout pas cette référence.
 Elle n'active aucun backend API ni consommation payante. Le parcours abonnement
 continue d'utiliser la connexion officielle du CLI.
 
@@ -78,7 +78,7 @@ L'activation programmatique exige une `CliQualification` pour une version exacte
 et un workspace audité, avec attestations abonnement et crédits supplémentaires
 désactivés. Cette structure représente un contrôle humain préalable ; elle ne
 vérifie pas automatiquement le compte et ne constitue pas une sandbox. Aucun
-CLI Nightshift ne crée cette qualification à ce stade. Avant chaque invocation,
+CLI token_maxxxer ne crée cette qualification à ce stade. Avant chaque invocation,
 l'adaptateur contrôle à nouveau la version, les variables incompatibles et les
 métadonnées de connexion officielle. Il n'effectue aucune relance et n'introduit
 aucun backend API. `run --once` reste indisponible jusqu'au pilote et à l'isolation Git.
@@ -179,7 +179,7 @@ Les checkpoints sauvegardent l'état du graphe, pas un processus externe. Avant 
 
 Schéma validé par le socle ; l'application du planning et des politiques
 d'exécution arrive aux jalons suivants. Exemple complet :
-[`examples/nightshift.yaml`](examples/nightshift.yaml).
+[`examples/token_maxxxer.yaml`](examples/token_maxxxer.yaml).
 
 ```yaml
 timezone: Europe/Paris
@@ -205,7 +205,7 @@ git:
   worktree_per_task: true
   auto_merge: false
 storage:
-  database: ./var/nightshift.sqlite
+  database: ./var/token_maxxxer.sqlite
   checkpoints: ./var/checkpoints.sqlite
   reports: ./var/reports
 ```
@@ -243,16 +243,16 @@ Les commandes suivantes décrivent le parcours MVP ; seules `doctor`, l'import,
 la liste et `run --dry-run` sont actuellement disponibles :
 
 ```bash
-nightshift doctor
-nightshift tasks import tasks.yaml
-nightshift tasks list
-nightshift run --once
-nightshift run --dry-run
-nightshift service install
-nightshift status
-nightshift pause
-nightshift resume
-nightshift report --latest
+token_maxxxer doctor
+token_maxxxer tasks import tasks.yaml
+token_maxxxer tasks list
+token_maxxxer run --once
+token_maxxxer run --dry-run
+token_maxxxer service install
+token_maxxxer status
+token_maxxxer pause
+token_maxxxer resume
+token_maxxxer report --latest
 ```
 
 `doctor` contrôlera Python, Git, le CLI Claude, sa version, l'authentification, les répertoires et la configuration. `--dry-run` devra simuler les décisions sans appel Claude ni modification du dépôt. Le service utilisera des chemins absolus et retrouvera l'authentification de l'utilisateur dans son environnement non interactif.

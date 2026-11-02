@@ -7,17 +7,17 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from nightshift.config import load_config
-from nightshift.doctor import checks_as_dicts, diagnose
-from nightshift.queue import import_document, preview_next
-from nightshift.storage import TaskStore
+from token_maxxxer.config import load_config
+from token_maxxxer.doctor import checks_as_dicts, diagnose
+from token_maxxxer.queue import import_document, preview_next
+from token_maxxxer.storage import TaskStore
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="nightshift", description="Claude Nightshift — socle local"
+        prog="token_maxxxer", description="token_maxxxer — socle local"
     )
-    parser.add_argument("--config", type=Path, default=Path("nightshift.yaml"))
+    parser.add_argument("--config", type=Path, default=Path("token_maxxxer.yaml"))
     commands = parser.add_subparsers(dest="command", required=True)
     doctor = commands.add_parser("doctor", help="diagnostic sans inférence ni modification")
     doctor.add_argument("--json", action="store_true")

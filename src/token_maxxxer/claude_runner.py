@@ -8,11 +8,11 @@ from typing import Annotated, Literal, Protocol
 
 from pydantic import Field, field_validator
 
-from nightshift.authentication import API_CONFIGURATION_VARIABLES
-from nightshift.json_io import load_unique_json
-from nightshift.models import Model, TaskId, Text
-from nightshift.process import ProcessCapture, run_process
-from nightshift.runner_result import RunnerResult, RunnerStatus, normalize_result
+from token_maxxxer.authentication import API_CONFIGURATION_VARIABLES
+from token_maxxxer.json_io import load_unique_json
+from token_maxxxer.models import Model, TaskId, Text
+from token_maxxxer.process import ProcessCapture, run_process
+from token_maxxxer.runner_result import RunnerResult, RunnerStatus, normalize_result
 
 Tool = Literal["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 CliVersion = Annotated[str, Field(pattern=r"^\d+\.\d+\.\d+$")]

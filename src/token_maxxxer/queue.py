@@ -5,10 +5,10 @@ from typing import Annotated
 
 from pydantic import Field
 
-from nightshift.config import Config
-from nightshift.models import Model, Task, TaskRecord, TaskStatus
-from nightshift.storage import TaskStore
-from nightshift.yaml_io import DocumentError, load_yaml
+from token_maxxxer.config import Config
+from token_maxxxer.models import Model, Task, TaskRecord, TaskStatus
+from token_maxxxer.storage import TaskStore
+from token_maxxxer.yaml_io import DocumentError, load_yaml
 
 
 class TaskDocument(Model):

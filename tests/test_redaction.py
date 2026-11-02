@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from nightshift.redaction import redact
-from nightshift.runner_result import normalize_result
+from token_maxxxer.redaction import redact
+from token_maxxxer.runner_result import normalize_result
 
 
 @pytest.mark.parametrize("name", ["password", "access_token", "client_secret", "ANTHROPIC_API_KEY"])

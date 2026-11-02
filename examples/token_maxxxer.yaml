@@ -23,6 +23,6 @@ git:
   worktree_per_task: true
   auto_merge: false
 storage:
-  database: ../var/nightshift.sqlite
+  database: ../var/token_maxxxer.sqlite
   checkpoints: ../var/checkpoints.sqlite
   reports: ../var/reports

@@ -5,10 +5,10 @@ import sys
 import pytest
 import yaml
 
-from nightshift.cli import main
-from nightshift.config import load_config
-from nightshift.doctor import API_CONFIGURATION_VARIABLES, checks_as_dicts, diagnose
-from nightshift.storage import TaskStore
+from token_maxxxer.cli import main
+from token_maxxxer.config import load_config
+from token_maxxxer.doctor import API_CONFIGURATION_VARIABLES, checks_as_dicts, diagnose
+from token_maxxxer.storage import TaskStore
 
 
 def test_empty_read_commands_do_not_create_runtime_files(config_path, capsys) -> None:
@@ -57,7 +57,7 @@ def test_configuration_errors_do_not_include_values(config_path, capsys) -> None
 
 
 def test_doctor_missing_claude_and_api_conflict(config_path, monkeypatch, capsys) -> None:
-    monkeypatch.setattr("nightshift.doctor.shutil.which", lambda _: None)
+    monkeypatch.setattr("token_maxxxer.doctor.shutil.which", lambda _: None)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "super-secret-value")
     assert main(["--config", str(config_path), "doctor", "--json"]) == 1
     output = capsys.readouterr().out
@@ -98,7 +98,7 @@ def test_doctor_uses_only_metadata_and_never_runs_inference(
     binary.chmod(0o700)
     original_which = __import__("shutil").which
     monkeypatch.setattr(
-        "nightshift.doctor.shutil.which",
+        "token_maxxxer.doctor.shutil.which",
         lambda name: str(binary) if name == "claude" else original_which(name),
     )
     checks = diagnose(load_config(config_path))

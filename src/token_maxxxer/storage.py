@@ -4,7 +4,7 @@ import sqlite3
 from contextlib import closing
 from pathlib import Path
 
-from nightshift.models import Task, TaskRecord, TaskStatus, utc_now
+from token_maxxxer.models import Task, TaskRecord, TaskStatus, utc_now
 
 APPLICATION_ID = 0x4E534654  # NSFT
 SCHEMA_VERSION = 1

@@ -6,8 +6,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, StringConstraints, field_validator, model_validator
 
-from nightshift.models import Model, resolve_path
-from nightshift.yaml_io import load_yaml
+from token_maxxxer.models import Model, resolve_path
+from token_maxxxer.yaml_io import load_yaml
 
 Day = Literal["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 ClockTime = Annotated[str, StringConstraints(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")]
@@ -97,7 +97,7 @@ class RepositoriesConfig(Model):
 
 
 class StorageConfig(Model):
-    database: Path = Path("./var/nightshift.sqlite")
+    database: Path = Path("./var/token_maxxxer.sqlite")
     checkpoints: Path = Path("./var/checkpoints.sqlite")
     reports: Path = Path("./var/reports")
 

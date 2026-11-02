@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from nightshift.runner_result import RunnerResult, normalize_result
+from token_maxxxer.runner_result import RunnerResult, normalize_result
 
 FIXTURES = Path(__file__).parent / "fixtures/claude"
 

@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27,<2"]
 build-backend = "hatchling.build"
 
 [project]
-name = "claude-nightshift"
+name = "token_maxxxer"
 version = "0.0.1"
 description = "Local, scheduled development task orchestration with Claude Code"
 readme = "readme.md"
@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.scripts]
-nightshift = "nightshift.cli:main"
+token_maxxxer = "token_maxxxer.cli:main"
 
 [dependency-groups]
 dev = [
@@ -30,7 +30,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/nightshift"]
+packages = ["src/token_maxxxer"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -46,4 +46,4 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src/nightshift"]
+files = ["src/token_maxxxer"]

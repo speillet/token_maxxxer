@@ -3,7 +3,7 @@
 import json
 import re
 
-from nightshift.json_io import load_unique_json
+from token_maxxxer.json_io import load_unique_json
 
 _PROVIDER_KEY = re.compile(r"\bsk-(?:ant|proj)-[A-Za-z0-9_-]+")
 _BEARER = re.compile(r"\bBearer\s+[A-Za-z0-9._~+/-]+=*", re.IGNORECASE)

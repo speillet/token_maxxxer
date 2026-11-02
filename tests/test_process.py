@@ -7,7 +7,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from nightshift.process import _signal_group, run_process
+from token_maxxxer.process import _signal_group, run_process
 
 
 def test_prompt_and_arguments_are_literal_without_a_shell(tmp_path) -> None:

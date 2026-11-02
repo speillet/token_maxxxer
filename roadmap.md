@@ -1,4 +1,4 @@
-# Roadmap — Claude Nightshift
+# Roadmap — token_maxxxer
 
 **Statut : socle et exécuteur testés hors ligne ; jalon 0 opérationnel ouvert.**
 Document compagnon du [readme.md](readme.md). Les cases cochées indiquent les
@@ -168,7 +168,7 @@ ne remplacent pas les sorties observées du pilote.
 
 | Décision | Proposition initiale |
 | --- | --- |
-| Nom du projet | `claude-nightshift` |
+| Nom du projet | `token_maxxxer` |
 | Premier dépôt | Dépôt de démonstration choisi par l'utilisateur |
 | Première source de tâches | Fichier YAML explicite |
 | Créneaux | Tous les jours, 22 h–7 h, Europe/Paris |

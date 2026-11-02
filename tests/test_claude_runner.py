@@ -5,14 +5,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from nightshift.authentication import API_CONFIGURATION_VARIABLES
-from nightshift.claude_runner import (
+from token_maxxxer.authentication import API_CONFIGURATION_VARIABLES
+from token_maxxxer.claude_runner import (
     CliQualification,
     FakeClaudeRunner,
     RunRequest,
     SubprocessClaudeRunner,
 )
-from nightshift.runner_result import RunnerResult
+from token_maxxxer.runner_result import RunnerResult
 
 SCRIPT = Path(__file__).parent / "helpers/fake_claude.py"
 
@@ -119,7 +119,7 @@ def test_incompatible_auth_environment_is_refused_before_any_process(
     def forbidden(*args, **kwargs):
         raise AssertionError("must not launch a subprocess")
 
-    monkeypatch.setattr("nightshift.claude_runner.run_process", forbidden)
+    monkeypatch.setattr("token_maxxxer.claude_runner.run_process", forbidden)
     result = runner(qualification, **{variable: "fixture-secret"}).run(request_data)
     assert result.status == "auth_error"
     assert "fixture-secret" not in result.model_dump_json()
@@ -142,7 +142,7 @@ def test_missing_qualification_and_different_workspace_never_launch(
     def forbidden(*args, **kwargs):
         raise AssertionError("must not launch a subprocess")
 
-    monkeypatch.setattr("nightshift.claude_runner.run_process", forbidden)
+    monkeypatch.setattr("token_maxxxer.claude_runner.run_process", forbidden)
     assert SubprocessClaudeRunner().run(request_data).error_code == "qualification_required"
     different = qualification.model_copy(update={"workspace": request_data.workspace.parent})
     assert runner(different).run(request_data).error_code == "qualification_required"
