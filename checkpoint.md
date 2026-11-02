@@ -34,7 +34,7 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | CP-011 | `f352270` | Cas macOS EPERM sur groupe terminé : interruption initiale préservée, refus sur processus vivant conservé | Régression simulée et vraie interruption ; suite complète et build relancés |
 | CP-012 | `3cba885` | Corrections des revues : credentials cités/échappés et champs inconnus ; fins interrompues refusées | Régressions sur sérialisation complète, espaces, JSON tronqué et métadonnées reconnues |
 | CP-013 | `7195818` | Décodeur JSON unique, doublons refusés avant expurgation, credentials multilignes supprimés | 156 tests, Ruff, mypy et build ; constats Standards et Spec revérifiés et fermés |
-| CP-014 | Commit `docs: document private credential references and runner delivery` | Convention de référence locale au gestionnaire de credentials, exemple sans secret et livraison exécuteur | `.env` ignoré par Git et permissions locales 0600 ; aucune clé dans les fichiers suivis |
+| CP-014 | `0342492` | Convention de référence locale au gestionnaire de credentials, exemple sans secret et livraison exécuteur | `.env` ignoré par Git et permissions locales 0600 ; aucune clé dans les fichiers suivis |
 
 ## Livraison du socle
 
@@ -57,7 +57,9 @@ responsabilité et utilisent Conventional Commits.
 ## Livraison de l'exécuteur hors ligne
 
 - Branche : `feat/claude-runner`, basée sur la PR #1 encore ouverte.
-- 156 tests sous Python 3.11 ; Ruff, typage strict et construction sdist/wheel validés.
+- PR : [#2 — transport CLI qualifié et tests hors ligne](https://github.com/speillet/token_maxxxer/pull/2).
+- 156 tests sous Python 3.11 et 3.13 sur macOS ; Ruff, typage strict et
+  construction sdist/wheel validés. CI macOS/Linux attachée à la dernière révision de la PR.
 - Revue Standards : corrections des credentials échappés/dupliqués et du schéma
   strict vérifiées ; aucun constat ouvert sur ce périmètre.
 - Revue Spec : correction des diagnostics expurgés vérifiée ; aucun constat ouvert.
