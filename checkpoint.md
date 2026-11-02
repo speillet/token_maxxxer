@@ -25,7 +25,21 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | CP-003 | `dbcb978` | Migration SQLite initiale, import atomique, ordre priorité/arrivée et lecture seule | 9 tests de file : concurrence d'import, rollback de lot, autorisation et conservation des états |
 | CP-004 | `9dcefaf` | Diagnostic sans inférence, import/liste, `run --dry-run` et JSON | 10 tests CLI ; 50 tests au total, paquet construit |
 | CP-005 | `425075f` | CI Python 3.11/3.13, conventions et documentation des commandes disponibles | Actions épinglées par SHA ; 50 tests locaux sur les deux versions et smoke CLI en processus séparés |
-| CP-006 | Commit `fix(config): reject impossible storage path hierarchies` | Correction du constat P2 des revues Standards et Spec : chemins SQLite imbriqués et parent fichier refusés | 5 cas de régression supplémentaires ; validations finales dans la PR |
+| CP-006 | `e3f7f88` | Correction du constat P2 des revues Standards et Spec : chemins SQLite imbriqués et parent fichier refusés | 55 tests sur Python 3.11 ; correction confirmée par les deux revues |
+
+## Livraison du socle
+
+- Branche : `feat/python-foundation`.
+- PR : [#1 — socle Python hors ligne](https://github.com/speillet/token_maxxxer/pull/1).
+- Validation locale : 55 tests sous Python 3.11 ; les 50 tests du lot initial
+  passaient aussi sous Python 3.13. Ruff, format, mypy strict, sdist et wheel
+  validés. Import de LangGraph, LangChain Core et `SqliteSaver` vérifié.
+- Smoke CLI en processus séparés : import, réimport, liste, simulation et
+  diagnostic ; tâche toujours `pending`, état Git inchangé, stockage temporaire.
+- Revue Standards : 1 constat P2, corrigé dans CP-006 et revérifié ; 0 ouvert.
+- Revue Spec : 1 constat P2, corrigé dans CP-006 et revérifié ; 0 ouvert.
+- CI distante : matrice macOS/Linux et Python 3.11/3.13 ; consulter les checks de
+  la PR pour le résultat attaché à la dernière révision.
 
 Chaque livraison ajoute ici son périmètre, ses vérifications et le nom du commit.
 Pour retrouver son SHA : `git log --oneline --all`. Les commits portent une seule
