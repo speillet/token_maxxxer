@@ -42,8 +42,9 @@ uv build --no-sources
 ## Changes, pull requests, and rollbacks
 
 Use short branches and Conventional Commits, with one responsibility per commit.
-Before a PR, run the checks above and update `checkpoint.md`, completed roadmap
-items, and the README's available commands. Mark operational validation complete
+Before a PR, run the checks above and update `docs/checkpoint.md`, completed
+`docs/roadmap.md` items, the README's available commands and the relevant guide
+in `docs/`. Mark operational validation complete
 only with real evidence. Documentation and simulated transports do not establish
 real account access; successful text generation does not verify a Git task.
 
@@ -55,4 +56,4 @@ obsolete branches once their work is integrated or explicitly superseded.
 After publication, use `git revert` rather than rewriting shared history.
 Back up databases and unverified worktrees separately before schema changes.
 Git rollback does not restore `.env`, Keychain entries, or other local data;
-see [checkpoint.md](checkpoint.md).
+see [docs/checkpoint.md](docs/checkpoint.md).

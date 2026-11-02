@@ -67,7 +67,7 @@ explicit and an error never switches the selected provider.
 review. It never commits, pushes or merges selected-repository changes. The
 original queue's stable task branches and acceptance workflow remain separate
 work. Skills use the supported typed tools; external plugins and arbitrary shell
-commands are not installed or executed. See [the session contract](docs/night-cli.md).
+commands are not installed or executed. See [the session contract](night-cli.md).
 
 ## 4 — Durable workflow and recovery
 

@@ -1,10 +1,11 @@
 # token_maxxxer
 
-A local development-task toolkit with configurable AI providers: **Claude API**,
-**OpenAI API**, and a planned **GitHub Copilot SDK** integration.
+Run bounded AI coding skills on your local repositories overnight: isolated Git
+worktrees, approved checks, Claude/OpenAI APIs, nothing merged automatically.
 
 The repository, Python package, and command are named `token_maxxxer`.
-Python 3.11+, macOS and Linux. [Roadmap](roadmap.md) · [Checkpoints and rollbacks](checkpoint.md).
+Python 3.11+, macOS and Linux. Providers: **Claude API**, **OpenAI API**, and a
+planned **GitHub Copilot SDK** integration. See the [documentation](#documentation).
 
 ## Current capabilities
 
@@ -33,83 +34,23 @@ uv sync --locked
 uv run token_maxxxer
 ```
 
-With no subcommand, the CLI opens an interactive picker. Select a discovered
-repository, a recent selection, or enter another local path (including `file://`
-URLs). It then lists repository and installed skills and suggests a repository
-skill, falling back to the built-in `improve-code` skill. You choose the skill,
-maximum duration, call limit and optional verification command before starting.
-On first use without a configuration file, enter the provider and an explicit
-model ID. The CLI remembers those settings and your recent selections privately.
-
-To make the command available outside this checkout, install it with
-`uv tool install --editable .`, then run `token_maxxxer` from any directory.
-
-The equivalent explicit invocation is:
+With no subcommand, the CLI opens an interactive picker: choose a local
+repository, a skill, the provider/model, a maximum duration, a call limit and an
+optional verification command. The equivalent explicit invocation is:
 
 ```bash
 # Global options precede the subcommand. Use a clean Git repository.
 uv run token_maxxxer --config examples/token_maxxxer.yaml night /path/to/repo \
   --skill builtin:improve-code --hours 8 --max-calls 100 \
   --verify 'uv run pytest -q' --dry-run
-
-# Remove --dry-run to confirm interactively, or replace it with --yes to start.
-# Configuration-free alternative: night /path/to/repo --provider claude --model YOUR_MODEL
 ```
 
-`night` starts immediately in the foreground. It does not evaluate `schedule`
-windows or use the imported task queue. Keep the terminal open and the machine
-running. Each session creates a unique `token_maxxxer/night-*` branch and
-worktree from the recorded HEAD; the selected working tree is preserved.
-Verification commands are user-approved argument arrays, parsed with quoting
-but without a shell. Repository code and checks must be trusted: a worktree is
-Git isolation, not an operating-system sandbox.
-
-The agent can list/read eligible tracked UTF-8 files, create/replace text files
-in its worktree, read selected skill resources and run approved checks. It
-excludes ignored files, known credential filenames, Git metadata, symlinks, common
-binary formats and files above 64 KiB. Reads are redacted for recognized
-credentials; eligible project content is sent to the selected API provider.
-It loads tracked `AGENTS.md` instructions, including nested directory rules.
-Repository skill resources follow the tracked-file rules in the worktree.
-For a user skill outside the repository, supporting-file reads are confined to
-its selected directory, with the same size, credential-name and symlink limits.
-Do not put credentials in verification arguments; recognized secrets and
-credential options are rejected before persistence. Check environments omit
-credential variables. Cleanliness checks run only after session confirmation.
-
-Skills are Markdown instructions, not executable plugins. External MCP tools,
-subagents and arbitrary shell commands referenced by a skill are unavailable;
-the agent must report that limitation. `--skill auto` uses local discovery
-without an inference request. Use `--skill ID` or an explicit `SKILL.md` path to
-select another skill; `--mode review` provides file reads without modifications
-or verification commands. See the [session contract](docs/night-cli.md).
-
-The skill repeats only while useful work remains, pausing 60 seconds between
-cycles (`--interval` changes that delay). The session stops at completion, its
-deadline, its call limit, an API error, or an interrupt. The default ceiling is
-eight hours and 100 calls; these limits do not guarantee an exact price.
-Authentication and quota errors stop execution without provider fallback.
-
-```bash
-uv run token_maxxxer repos --root /path/to/projects
-uv run token_maxxxer skills --repo /path/to/repo
-uv run token_maxxxer sessions
-uv run token_maxxxer sessions SESSION_ID
-```
-
-History, a provider/model profile and session records live under
-`${XDG_STATE_HOME:-~/.local/state}/token_maxxxer`. Override this with the global
-`--state-dir` option; storage must be outside the selected repository. Records
-use private permissions and atomic replacement. A session retains `session.json`,
-`report.md` and its worktree, with API-call counts, observed usage, verification
-results and remaining review work. CLI progress is written to stderr, preserving
-`--json` output. Reports retain the latest 50 cycle summaries and check results.
-
-Changed work always needs human review; the runner never commits, pushes or
-merges it. Use `git -C WORKTREE status` and `git -C WORKTREE diff` to inspect it
-(new files appear in status). Failed/interrupted work is retained. A crash may
-leave a `running` record; it is inspectable and is never automatically replayed.
-Durable resume and background services remain future work.
+Remove `--dry-run` to confirm interactively, or replace it with `--yes` to start.
+Each session works in its own `token_maxxxer/night-*` branch and worktree; the
+selected working tree is preserved, and changed work always needs human review.
+Repository code and checks must be trusted: a worktree is Git isolation, not an
+operating-system sandbox. The [overnight session guide](docs/night-cli.md)
+covers the picker, tool scope, limits, session records and review.
 
 ## Install and inspect
 
@@ -250,19 +191,17 @@ src/token_maxxxer/
 └── json_io.py, redaction.py   # strict JSON handling and credential redaction
 ```
 
-The retired subscription CLI transport, subprocess runner, wire parser, fixtures,
-and archived CLI contract have been removed. Their history remains available
-through Git checkpoints. LangGraph, LangChain Core, and a graph checkpointer
-will be installed when the durable workflow is implemented, rather than kept as
-unused dependencies. The application database and future workflow checkpoints
-have separate configured locations.
+LangGraph, LangChain Core, and a graph checkpointer will be installed when the
+durable workflow is implemented, rather than kept as unused dependencies. The
+application database and future workflow checkpoints have separate configured
+locations.
 
 Copilot will use the same `Provider` interface with its official SDK and GitHub
 authentication. `provider.name: copilot` is recognized but rejected until that
 adapter is implemented. No private Copilot endpoint or implicit reuse of `gh`
-credentials is used. See [provider contracts](docs/providers.md).
+credentials is used.
 
-## Development and migration
+## Development
 
 ```bash
 uv run ruff format --check
@@ -273,16 +212,16 @@ uv build --no-sources
 ```
 
 Tests use simulated HTTP and temporary repositories. CI covers Python 3.11 and
-3.13 on macOS and Linux. See [CONTRIBUTING.md](CONTRIBUTING.md).
-All maintained documentation, code messages, examples, and test descriptions
-are written in English. Prompts and generated responses may use any language.
+3.13 on macOS and Linux. All maintained documentation, code messages, examples,
+and test descriptions are written in English. Prompts and generated responses
+may use any language.
 
-From the prototype, update imports, commands, and configuration to
-`token_maxxxer`, add `provider`, and set `authentication.mode` to `api_key`.
-Credential reference variables use the `TOKEN_MAXXXER_` prefix. The shared
-result type is now `GenerationResult`; `response_id` replaces the misleading
-`session_id`, and unused subprocess fields have been removed.
+## Documentation
 
-No local data or Keychain entry is automatically renamed or deleted. To retain
-an existing database, keep its explicit path in `storage.database`; its SQLite
-application ID and schema remain compatible. Back up local data separately.
+| Document | Contents |
+| --- | --- |
+| [docs/night-cli.md](docs/night-cli.md) | Overnight sessions: picker, explicit invocation, tool scope, limits, records and review |
+| [docs/providers.md](docs/providers.md) | Provider contract, result statuses, credentials and official API references |
+| [docs/roadmap.md](docs/roadmap.md) | Milestones and remaining work |
+| [docs/checkpoint.md](docs/checkpoint.md) | Delivery history, rollback points, procedure and prototype migration |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Development standards, checks, pull requests and rollbacks |

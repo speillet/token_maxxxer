@@ -30,7 +30,7 @@ messages, examples, and test descriptions are maintained in English.
 | [#1](https://github.com/speillet/token_maxxxer/pull/1) | Python foundation and persistent task queue | Merged into main as `2b38985`; four CI checks passed after retrying a cancelled job |
 | [#2](https://github.com/speillet/token_maxxxer/pull/2) | Retired subscription CLI prototype | Closed as superseded; shared work preserved through #3 |
 | [#3](https://github.com/speillet/token_maxxxer/pull/3) | Current name and Claude/OpenAI API providers | Retargeted to main and merged as `f7f5fb2`; four CI checks passed |
-| [#4](https://github.com/speillet/token_maxxxer/pull/4) | Remove dead code and unused dependencies; translate maintained content | Cleanup delivery; integration status and merge commit are available on the linked PR |
+| [#4](https://github.com/speillet/token_maxxxer/pull/4) | Remove dead code and unused dependencies; translate maintained content | Merged into main as `c72dd91` |
 | [#5](https://github.com/speillet/token_maxxxer/pull/5) | Interactive repository/skill selection and isolated overnight sessions | Feature delivery; current review/CI status is available on the linked PR |
 
 The cleanup branch starts at `fc0a7c3`. It removes the old CLI adapter, its
@@ -84,7 +84,12 @@ their heads are confirmed to be ancestors of main; rollback commits remain reach
 | CP-028 | `165f3fe` | CLI usage, skill/tool scope, foreground limits, reports and review/rollback procedure |
 | CP-029 | `c8fa6d4` | Review corrections: reject credential arguments, sanitize records, exclude conventional credential files and linked skill roots, scope repository skill resources to the worktree, atomically replace reports, and defer Git status until confirmed execution |
 | CP-030 | `0f7f53d` | Reject split, prefixed, camelCase and environment-assignment credential options before persistence; 211 tests pass on Python 3.11/3.13 and all four macOS/Linux CI jobs pass |
-| CP-031 | `docs: record overnight CLI validation and review` | Final operational scope, PR reference, account-independent validation and resolved Standards/Spec reviews |
+| CP-031 | `8a0a196` | Final operational scope, PR reference, account-independent validation and resolved Standards/Spec reviews |
+| CP-032 | `7b829b5` | Credential-name checks apply only to verification options and assignments; positional words such as `pytest -k token` are accepted |
+| CP-033 | `f087fc7` | File tools no longer hide tracked `var`/`worktrees` directories copied from this repository's ignore rules |
+| CP-034 | `88a4118` | Plan validation, including review mode without checks, lives only in `NightPlan` |
+| CP-035 | `345f071` | Local failures record the exception class name without its message; 217 tests pass |
+| CP-036 | `docs: move project documentation into docs/` | `README.md`, guide index, and `docs/roadmap.md`/`docs/checkpoint.md`; overnight details moved to `docs/night-cli.md` |
 
 Use `git log --all --oneline` to find the SHA for a checkpoint identified by
 commit subject. Earlier checkpoint source is recoverable even after its branch
@@ -119,7 +124,7 @@ from source rollback.
 
 ## Overnight CLI delivery
 
-The feature branch starts at `c72dd91`. See [the execution contract](docs/night-cli.md).
+The feature branch starts at `c72dd91`. See [the execution contract](night-cli.md).
 The interactive CLI selects a local repository, suggests recent paths, discovers
 repository/user skills, and runs the chosen instructions through typed tools.
 It supports Claude/OpenAI without changing the existing credential contract.
@@ -151,7 +156,29 @@ Spec review found ignored skill resource reads and pre-confirmation Git clean
 filter execution. All findings have dedicated regression coverage and are fixed;
 targeted rereviews report zero remaining findings on either axis.
 
+A follow-up relevance review (CP-032 to CP-035) found that credential-name checks
+rejected positional verification words such as `pytest -k token`, and that file
+tools hid tracked `var`/`worktrees` directories in other repositories. It also
+removed duplicated plan validation and recorded the exception class of local
+failures. Each change has regression coverage; 217 tests pass locally. The
+project documentation now lives in `docs/`, with a shorter `README.md` index.
+
 Account access, real model compliance and a complete overnight pilot are not
-claimed. The CLI
-is foreground-only: no schedule-window service, durable resume, arbitrary shell,
-external skill plugins, automatic commits, push or merge are implemented.
+claimed. The CLI is foreground-only: no schedule-window service, durable resume,
+arbitrary shell, external skill plugins, automatic commits, push or merge are
+implemented.
+
+## Migration from the prototype
+
+Update imports, commands, and configuration to `token_maxxxer`, add `provider`,
+and set `authentication.mode` to `api_key`. Credential reference variables use
+the `TOKEN_MAXXXER_` prefix. The shared result type is now `GenerationResult`;
+`response_id` replaces the misleading `session_id`, and unused subprocess fields
+have been removed.
+
+The retired subscription CLI transport, subprocess runner, wire parser, fixtures,
+and archived CLI contract have been removed; their history remains available
+through the checkpoints above. No local data or Keychain entry is automatically
+renamed or deleted. To retain an existing database, keep its explicit path in
+`storage.database`; its SQLite application ID and schema remain compatible.
+Back up local data separately.

@@ -66,4 +66,4 @@ keys. A reference is not a secret and never creates a Keychain entry itself.
   the official SDK without private endpoints or implicit `gh auth` credentials.
 
 The abandoned subscription CLI implementation is available only in Git history;
-see checkpoint CP-015 in [checkpoint.md](../checkpoint.md) when investigating it.
+see checkpoint CP-015 in [checkpoint.md](checkpoint.md) when investigating it.

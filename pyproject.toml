@@ -5,8 +5,8 @@ build-backend = "hatchling.build"
 [project]
 name = "token_maxxxer"
 version = "0.0.1"
-description = "Local development-task orchestration with configurable AI API providers"
-readme = "readme.md"
+description = "Run bounded AI coding skills on your local repositories overnight: isolated Git worktrees, approved checks, Claude/OpenAI APIs, nothing merged automatically."
+readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
