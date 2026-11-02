@@ -32,6 +32,7 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | CP-009 | `ecb3b67` | stdin littéral, sorties séparées, délais, limites de sortie et arrêt des descendants | Tests POSIX, enfant ignorant SIGTERM, parent terminé et interruption clavier ; correctif macOS CP-011 nécessaire |
 | CP-010 | `819261c` | Interface ClaudeRunner, faux déterministe et précontrôles avant une seule invocation | 28 tests sur faux CLI local ; refus d'environnement incompatible, version différente et compte non confirmé |
 | CP-011 | Commit `fix(process): handle macOS probes after process termination` | Cas macOS EPERM sur groupe terminé : interruption initiale préservée, refus sur processus vivant conservé | Régression simulée et vraie interruption ; suite complète et build relancés |
+| CP-012 | Commit `fix(runner): redact decoded JSON and reject unknown result fields` | Corrections des revues : credentials cités/échappés et champs inconnus ; fins interrompues refusées | Régressions sur sérialisation complète, espaces, JSON tronqué et métadonnées reconnues |
 
 ## Livraison du socle
 

@@ -3,7 +3,7 @@
 import json
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
 
 from nightshift.models import Model, NonNegativeInt, UsageObservation, utc_now
 from nightshift.redaction import redact
@@ -37,15 +37,25 @@ class RunnerResult(Model):
 
 
 class _WireUsage(BaseModel):
-    model_config = ConfigDict(extra="ignore", allow_inf_nan=False, hide_input_in_errors=True)
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, hide_input_in_errors=True)
     input_tokens: NonNegativeInt | None = None
     output_tokens: NonNegativeInt | None = None
+    cache_creation_input_tokens: NonNegativeInt | None = None
+    cache_read_input_tokens: NonNegativeInt | None = None
+    server_tool_use: dict[str, JsonValue] | None = None
+    service_tier: str | None = None
 
 
 class _WireResult(BaseModel):
-    model_config = ConfigDict(extra="ignore", allow_inf_nan=False, hide_input_in_errors=True)
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, hide_input_in_errors=True)
     type: Literal["result"]
-    subtype: str
+    subtype: Literal[
+        "success",
+        "error_during_execution",
+        "error_max_turns",
+        "error_max_budget_usd",
+        "error_max_structured_output_retries",
+    ]
     is_error: Annotated[bool, Field(strict=True)]
     session_id: Annotated[str, Field(min_length=1)] | None = None
     result: str | None = None
@@ -54,6 +64,14 @@ class _WireResult(BaseModel):
     terminal_reason: str | None = None
     usage: _WireUsage | None = None
     total_cost_usd: Annotated[float, Field(strict=True, ge=0)] | None = None
+    duration_ms: NonNegativeInt | None = None
+    duration_api_ms: NonNegativeInt | None = None
+    num_turns: NonNegativeInt | None = None
+    stop_reason: str | None = None
+    structured_output: JsonValue | None = None
+    model_usage: dict[str, JsonValue] | None = Field(default=None, alias="modelUsage")
+    permission_denials: tuple[JsonValue, ...] | None = None
+    uuid: str | None = None
 
 
 def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -105,7 +123,8 @@ def normalize_result(
         and wire.result is not None
         and not wire.errors
         and wire.api_error_status is None
-        and wire.terminal_reason != "api_error"
+        and wire.terminal_reason in (None, "completed")
+        and wire.stop_reason in (None, "end_turn", "stop_sequence")
     ):
         status, error_code = "success", None
 

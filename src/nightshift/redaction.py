@@ -1,17 +1,46 @@
 """Redact common credential formats before returning process diagnostics."""
 
+import json
 import re
 
 _PROVIDER_KEY = re.compile(r"\bsk-(?:ant|proj)-[A-Za-z0-9_-]+")
 _BEARER = re.compile(r"\bBearer\s+[A-Za-z0-9._~+/-]+=*", re.IGNORECASE)
 _NAMED_SECRET = re.compile(
-    r"(\b(?:api_key|access_token|refresh_token|client_secret|password)"
-    r"[\"']?\s*[:=]\s*[\"']?)[^\s\"',}]+",
+    r"(\b(?:[a-z0-9]+[_-])*(?:api[_-]?key|access[_-]?token|refresh[_-]?token|"
+    r"client[_-]?secret|password|authorization)[\"']?\s*[:=]\s*).*",
+    re.IGNORECASE,
+)
+_SECRET_NAME = re.compile(
+    r"(?:^|[_-])(?:api[_-]?key|access[_-]?token|refresh[_-]?token|"
+    r"client[_-]?secret|password|authorization)$",
     re.IGNORECASE,
 )
 
 
-def redact(value: str) -> str:
+def _plain_text(value: str) -> str:
     value = _PROVIDER_KEY.sub("[REDACTED]", value)
     value = _BEARER.sub("Bearer [REDACTED]", value)
+    # Discard the rest of a credential-bearing line, including quoted spaces.
     return _NAMED_SECRET.sub(r"\1[REDACTED]", value)
+
+
+def _json_value(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            key: "[REDACTED]" if _SECRET_NAME.search(key) else _json_value(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_json_value(item) for item in value]
+    return _plain_text(value) if isinstance(value, str) else value
+
+
+def redact(value: str) -> str:
+    try:
+        decoded = json.loads(value)
+        sanitized = _json_value(decoded)
+        if sanitized != decoded:
+            return json.dumps(sanitized, ensure_ascii=False)
+    except (ValueError, RecursionError):
+        return _plain_text(value)
+    return value

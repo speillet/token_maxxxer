@@ -51,6 +51,14 @@ def test_malformed_terminal_json(payload) -> None:
         {"usage": {"output_tokens": True}},
         {"total_cost_usd": float("nan")},
         {"total_cost_usd": True},
+        {"error": "unrecognized failure"},
+        {"usage": {"future_error": True}},
+        {"terminal_reason": "aborted_tools"},
+        {"terminal_reason": "aborted_streaming"},
+        {"terminal_reason": "max_turns"},
+        {"terminal_reason": "unrecognized_failure"},
+        {"stop_reason": "refusal"},
+        {"stop_reason": "tool_deferred_unavailable"},
     ],
 )
 def test_incoherent_success_is_never_accepted(updates) -> None:
@@ -96,6 +104,27 @@ def test_cost_and_session_metadata_are_retained() -> None:
     result = normalize_result(successful_payload(total_cost_usd=0, session_id="fixture"), "", 0)
     assert result.session_id == "fixture"
     assert result.usage.estimated_cost_usd == 0
+
+
+def test_recognized_terminal_metadata_remains_accepted() -> None:
+    result = normalize_result(
+        successful_payload(
+            duration_ms=100,
+            duration_api_ms=80,
+            num_turns=1,
+            uuid="fixture",
+            terminal_reason="completed",
+            stop_reason="end_turn",
+            permission_denials=[],
+            structured_output=None,
+            modelUsage={"fixture-model": {"inputTokens": 12}},
+            usage={"input_tokens": 12, "cache_read_input_tokens": 8},
+        ),
+        "",
+        0,
+    )
+    assert result.status == "success"
+    assert result.usage.input_tokens == 12
 
 
 def test_secrets_are_redacted_in_all_serialized_diagnostics() -> None:
