@@ -1,9 +1,9 @@
 # Roadmap — Claude Nightshift
 
-**Statut : socle Python livré et testé hors ligne ; jalon 0 opérationnel ouvert.**
+**Statut : socle et exécuteur testés hors ligne ; jalon 0 opérationnel ouvert.**
 Document compagnon du [readme.md](readme.md). Les cases cochées indiquent les
 travaux vérifiés ; preuves et retours arrière dans [checkpoint.md](checkpoint.md).
-L'exécuteur Claude, le workflow durable et le planning restent à implémenter.
+Le raccordement réel de l'exécuteur, le workflow durable et le planning restent à implémenter.
 
 ## Stratégie de réalisation
 
@@ -61,15 +61,20 @@ hors ligne sans activer le chemin abonnement pendant cette validation.
 
 ## Jalon 2 — Construire l'exécuteur Claude Code
 
-- [ ] Créer une interface `ClaudeRunner` avec une implémentation réelle et une fausse implémentation déterministe.
-- [ ] Lancer le CLI avec `subprocess`, des arguments séparés et sans `shell=True`.
-- [ ] Fournir la consigne via un canal compatible avec le CLI, sans interpolation shell.
-- [ ] Capturer stdout, stderr, code de sortie et éventuel identifiant de session.
-- [ ] Normaliser les résultats : `success`, `rate_limited`, `auth_error`, `timeout`, `transient_error`, `invalid_output`.
-- [ ] Distinguer absence d'une donnée d'usage et consommation nulle.
-- [ ] Appliquer permissions explicites, délai maximal et arrêt du groupe de processus.
-- [ ] Mettre en pause sur authentification expirée ; ne pas traiter ce cas comme un quota.
-- [ ] Tester sorties malformées, erreurs internes malgré une sortie JSON, crash et processus enfant bloqué.
+- [x] Créer une interface `ClaudeRunner` avec une implémentation réelle et une fausse implémentation déterministe.
+- [x] Lancer le CLI avec `subprocess`, des arguments séparés et sans `shell=True`.
+- [x] Fournir la consigne via un canal compatible avec le CLI, sans interpolation shell.
+- [x] Capturer stdout, stderr, code de sortie et éventuel identifiant de session.
+- [x] Normaliser les résultats : `success`, `rate_limited`, `auth_error`, `timeout`, `transient_error`, `invalid_output`.
+- [x] Distinguer absence d'une donnée d'usage et consommation nulle.
+- [x] Appliquer permissions explicites, délai maximal et arrêt du groupe de processus.
+- [ ] Mettre en pause sur authentification expirée ; ne pas traiter ce cas comme un quota. Classification `auth_error` et absence de relance testées ; transition persistée au jalon 4.
+- [x] Tester sorties malformées, erreurs internes malgré une sortie JSON, crash et processus enfant bloqué.
+
+État actuel : transport testé avec un faux CLI local uniquement. La qualification
+réelle du jalon 0, le lancement manuel sur un worktree audité et la pause durable
+restent ouverts. `run --once` n'est pas encore raccordé. Les fixtures synthétiques
+ne remplacent pas les sorties observées du pilote.
 
 **Validation :** chaque scénario produit un résultat classé ; un timeout ne laisse aucun processus enfant actif ; aucune relance infinie.
 

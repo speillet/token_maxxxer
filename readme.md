@@ -2,9 +2,10 @@
 
 > Orchestrateur personnel de tâches de développement avec LangGraph, LangChain et Claude Code, sur macOS et Linux.
 
-**Statut : premier socle Python disponible, exécution Claude à développer.**
+**Statut : socle Python disponible, exécuteur testé hors ligne.**
 Configuration, modèles, import SQLite, liste, diagnostic et simulation sont
-implémentés. Le reste de ce README décrit la cible. Le jalon 0 attend encore sa
+implémentés. Le transport Claude et son faux déterministe sont testés localement,
+sans raccordement à `run --once`. Le reste de ce README décrit la cible. Le jalon 0 attend encore sa
 validation sur un compte réel ; aucun appel d'inférence n'est activé.
 Plan : [roadmap.md](roadmap.md). Avancement et retours arrière : [checkpoint.md](checkpoint.md).
 
@@ -51,6 +52,32 @@ Les commandes `run --once`, `status`, `pause`, `resume`, `report` et `service`
 seront livrées aux jalons suivants. LangGraph, LangChain Core et le checkpointer
 SQLite sont installés ; aucun workflow d'exécution n'est encore raccordé.
 Contrôles de développement : [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Exécuteur — validation hors ligne
+
+`claude_runner.py` fournit l'interface `ClaudeRunner`, un `FakeClaudeRunner`
+déterministe et l'adaptateur `SubprocessClaudeRunner`. Les tests utilisent un
+script Python local : aucune clé, connexion Claude ou consommation n'est requise.
+
+L'adaptateur transmet la consigne par stdin, restreint explicitement les outils,
+borne le temps et les sorties retournées, puis arrête le groupe de processus,
+y compris ses enfants. Un JSON terminal valide, `is_error: false`, une fin
+cohérente et un code de sortie zéro sont nécessaires au résultat `success`.
+Ce résultat ne valide pas les critères métier : la vérification arrive au jalon 3.
+
+L'activation programmatique exige une `CliQualification` pour une version exacte
+et un workspace audité, avec attestations abonnement et crédits supplémentaires
+désactivés. Cette structure représente un contrôle humain préalable ; elle ne
+vérifie pas automatiquement le compte et ne constitue pas une sandbox. Aucun
+CLI Nightshift ne crée cette qualification à ce stade. Avant chaque invocation,
+l'adaptateur contrôle à nouveau la version, les variables incompatibles et les
+métadonnées de connexion officielle. Il n'effectue aucune relance et n'introduit
+aucun backend API. `run --once` reste indisponible jusqu'au pilote et à l'isolation Git.
+
+Les diagnostics masquent les formats de credentials reconnus. Les fixtures sont
+explicitement synthétiques ; leur version fictive ne vaut pas qualification du
+CLI réel. Les erreurs inconnues nécessitent une revue et ne deviennent pas des
+quotas par détection de mots dans stderr. Voir le [contrat](docs/claude-cli-contract.md).
 
 ## Objectif
 
