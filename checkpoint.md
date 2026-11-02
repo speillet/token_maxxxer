@@ -47,10 +47,27 @@ arrivent au jalon 3. Aucune fixture synthétique ne vaut preuve d'un appel réel
 | CP-015 | `f887f88` | Dernière révision de la PR #2, avant nouveau cadrage | Point de retour du nom et de l'ancien parcours abonnement |
 | CP-016 | `48ee353` | Nom cohérent du paquet, commande, exemples, stockage par défaut et références publiques | 156 tests et outils de qualité après renommage |
 | CP-017 | `e923570` | Interface Provider, SDK API, query explicite, doctor sans CLI, références de credentials résolues à la demande | 194 tests, transports HTTP simulés, limites, erreurs sans relance et références privées |
-| CP-018 | Commit `test(api): validate provider selection and credential masking` | Bornes de configuration fournisseur, chemin des références et masquage Claude/OpenAI/GitHub | 201 tests sur la suite complète |
-| CP-019 | Commit `docs: align roadmap and provider contracts with API-based execution` | README et roadmap API, contrat multi-fournisseurs et ancien contrat CLI archivé | Documentation des limites et des commandes réellement disponibles |
-| CP-020 | Commit `fix(api): reject refused and incomplete output items` | Constat P2 des revues : sortie OpenAI globalement complète mais message refusé/incomplet ; outils non raccordés refusés | Régressions sur refus, états des messages, raisonnement incomplet et appels d'outil |
-| CP-021 | Commit `fix(cli): reject oversized prompts before any API access` | Constat P2 : ne pas envoyer une consigne tronquée, préserver l'indentation et refuser une entrée vide | Fichier et stdin trop longs refusés avant fournisseur/credential |
+| CP-018 | `9b010df` | Bornes de configuration fournisseur, chemin des références et masquage Claude/OpenAI/GitHub | 201 tests sur la suite complète |
+| CP-019 | `05bb7c2` | README et roadmap API, contrat multi-fournisseurs et ancien contrat CLI archivé | Documentation des limites et des commandes réellement disponibles |
+| CP-020 | `29a4e7b` | Constat P2 des revues : sortie OpenAI globalement complète mais message refusé/incomplet ; outils non raccordés refusés | 207 tests dont refus, états des messages, raisonnement incomplet et appels d'outil |
+| CP-021 | `0d057cc` | Constat P2 : ne pas envoyer une consigne tronquée, préserver l'indentation et refuser une entrée vide | 211 tests et quatre jobs CI verts sur macOS/Linux, Python 3.11/3.13 |
+
+## Livraison actuelle — token_maxxxer avec fournisseurs API
+
+- Branche : `feat/token-maxxxer-api-providers`, basée sur la PR #2.
+- PR : [#3 — nom du dépôt et fournisseurs API configurables](https://github.com/speillet/token_maxxxer/pull/3).
+- Paquet, commande, imports et configuration portent le nom `token_maxxxer`.
+- Claude et OpenAI disposent d'adaptateurs SDK derrière `Provider` ; `query`
+  résout le credential choisi uniquement au moment de l'appel explicite.
+- Copilot est prévu via son SDK/token GitHub, mais reste indisponible à l'exécution.
+- 211 tests locaux sous Python 3.11 et 3.13 ; Ruff, mypy et build validés.
+  Les quatre jobs CI de la révision `0d057cc` ont réussi.
+- Revues Standards et Spec : les constats P2 sur les refus/incomplétudes et
+  les consignes tronquées sont corrigés et revérifiés ; aucun constat ouvert.
+- `doctor` et le CLI renommé vérifiés sans requête API ni lecture du secret.
+  Noms publics et fichiers suivis contrôlés ; `.env` reste privé et ignoré.
+- Aucun appel réel ou facturé effectué. L'agent de code, les worktrees et le
+  workflow planifié restent aux jalons suivants ; `query` génère du texte seulement.
 
 ## Livraison du socle
 
