@@ -21,6 +21,7 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | --- | --- | --- | --- |
 | CP-000 | `ad0992b` | README et roadmap d'origine | Arbre Git propre avant implémentation |
 | CP-001 | Commit `docs: record CLI contract and implementation checkpoints` | Contrat externe et protocole de suivi | Sources officielles relues, limites locales consignées |
+| CP-002 | Commit `feat(config): add validated Python foundation and domain models` | Packaging verrouillé, YAML sûr, configuration et modèles | Ruff, mypy et tests ciblés configuration/modèles |
 
 Chaque livraison ajoute ici son périmètre, ses vérifications et le nom du commit.
 Pour retrouver son SHA : `git log --oneline --all`. Les commits portent une seule

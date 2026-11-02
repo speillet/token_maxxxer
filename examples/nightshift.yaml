@@ -1,0 +1,28 @@
+# Tous les chemins relatifs sont résolus depuis ce fichier.
+timezone: Europe/Paris
+schedule:
+  windows:
+    - days: [mon, tue, wed, thu, fri, sat, sun]
+      start: '22:00'
+      end: '07:00'
+  stop_policy: strict
+  shutdown_grace_seconds: 10
+repositories:
+  allowed: [..]  # Remplacer par les racines Git explicitement autorisées.
+execution:
+  concurrency: 1
+  task_timeout_minutes: 30
+  verification_timeout_seconds: 300
+  max_attempts_per_task: 3
+  max_active_minutes_per_window: 240
+  retry_backoff_seconds: [300, 900, 1800]
+authentication:
+  mode: claude_subscription
+  reject_api_configuration: true
+git:
+  worktree_per_task: true
+  auto_merge: false
+storage:
+  database: ../var/nightshift.sqlite
+  checkpoints: ../var/checkpoints.sqlite
+  reports: ../var/reports
