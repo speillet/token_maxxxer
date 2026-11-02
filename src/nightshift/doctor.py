@@ -1,6 +1,5 @@
 """Read-only diagnostics; no inference, credential extraction or account changes."""
 
-import json
 import os
 import re
 import shutil
@@ -12,6 +11,7 @@ from typing import Literal
 
 from nightshift.authentication import API_CONFIGURATION_VARIABLES
 from nightshift.config import Config
+from nightshift.json_io import load_unique_json
 from nightshift.storage import TaskStore
 
 
@@ -109,7 +109,7 @@ def diagnose(config: Config) -> list[Check]:
         authenticated = False
         if result is not None and result.returncode == 0:
             try:
-                status = json.loads(result.stdout)
+                status = load_unique_json(result.stdout)
                 authenticated = (
                     isinstance(status, dict)
                     and status.get("loggedIn") is True

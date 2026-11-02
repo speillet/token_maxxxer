@@ -1,6 +1,5 @@
 """Claude transport and deterministic fake; not connected to real CLI task execution yet."""
 
-import json
 import os
 import re
 from collections.abc import Mapping, Sequence
@@ -10,6 +9,7 @@ from typing import Annotated, Literal, Protocol
 from pydantic import Field, field_validator
 
 from nightshift.authentication import API_CONFIGURATION_VARIABLES
+from nightshift.json_io import load_unique_json
 from nightshift.models import Model, TaskId, Text
 from nightshift.process import ProcessCapture, run_process
 from nightshift.runner_result import RunnerResult, RunnerStatus, normalize_result
@@ -184,7 +184,7 @@ class SubprocessClaudeRunner:
                 )
             )
         try:
-            metadata = json.loads(auth.stdout)
+            metadata = load_unique_json(auth.stdout)
             authenticated = (
                 auth.exit_code == 0
                 and isinstance(metadata, dict)

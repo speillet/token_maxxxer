@@ -3,12 +3,14 @@
 import json
 import re
 
+from nightshift.json_io import load_unique_json
+
 _PROVIDER_KEY = re.compile(r"\bsk-(?:ant|proj)-[A-Za-z0-9_-]+")
 _BEARER = re.compile(r"\bBearer\s+[A-Za-z0-9._~+/-]+=*", re.IGNORECASE)
 _NAMED_SECRET = re.compile(
-    r"(\b(?:[a-z0-9]+[_-])*(?:api[_-]?key|access[_-]?token|refresh[_-]?token|"
+    r"((?<![a-z0-9])(?:api[_-]?key|access[_-]?token|refresh[_-]?token|"
     r"client[_-]?secret|password|authorization)[\"']?\s*[:=]\s*).*",
-    re.IGNORECASE,
+    re.IGNORECASE | re.DOTALL,
 )
 _SECRET_NAME = re.compile(
     r"(?:^|[_-])(?:api[_-]?key|access[_-]?token|refresh[_-]?token|"
@@ -20,14 +22,14 @@ _SECRET_NAME = re.compile(
 def _plain_text(value: str) -> str:
     value = _PROVIDER_KEY.sub("[REDACTED]", value)
     value = _BEARER.sub("Bearer [REDACTED]", value)
-    # Discard the rest of a credential-bearing line, including quoted spaces.
+    # Discard the rest of credential-bearing text, including quoted line breaks.
     return _NAMED_SECRET.sub(r"\1[REDACTED]", value)
 
 
 def _json_value(value: object) -> object:
     if isinstance(value, dict):
         return {
-            key: "[REDACTED]" if _SECRET_NAME.search(key) else _json_value(item)
+            _plain_text(key): "[REDACTED]" if _SECRET_NAME.search(key) else _json_value(item)
             for key, item in value.items()
         }
     if isinstance(value, list):
@@ -37,7 +39,7 @@ def _json_value(value: object) -> object:
 
 def redact(value: str) -> str:
     try:
-        decoded = json.loads(value)
+        decoded = load_unique_json(value)
         sanitized = _json_value(decoded)
         if sanitized != decoded:
             return json.dumps(sanitized, ensure_ascii=False)

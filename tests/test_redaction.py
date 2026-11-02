@@ -41,3 +41,31 @@ def test_truncated_json_is_still_expurgated(quoted) -> None:
 def test_non_sensitive_text_and_json_are_preserved_exactly() -> None:
     for text in ["plain text", '{ "result": "done", "usage": null }\n']:
         assert redact(text) == text
+
+
+@pytest.mark.parametrize("secret", ["sk-ant-fixture-credential", "access_token=fixture-token"])
+def test_duplicate_json_keys_never_preserve_overwritten_credentials(secret) -> None:
+    payload = (
+        '{"type":"result","subtype":"success","is_error":false,'
+        f'"result":{json.dumps(secret)},"result":"Done."}}'
+    )
+    result = normalize_result(payload, "", 0)
+    assert result.status == "invalid_output"
+    for output in (result.stdout, result.model_dump_json()):
+        assert secret not in output
+        assert "fixture-token" not in output
+
+
+def test_quoted_multiline_credential_is_redacted_entirely() -> None:
+    payload = json.dumps(
+        {
+            "type": "result",
+            "subtype": "success",
+            "is_error": False,
+            "result": 'password="fixture-secret\ncontinuation-private"',
+        }
+    )
+    result = normalize_result(payload, "", 0)
+    for output in (result.text, result.stdout, result.model_dump_json()):
+        assert "fixture-secret" not in output
+        assert "continuation-private" not in output

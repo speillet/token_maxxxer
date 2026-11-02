@@ -1,10 +1,10 @@
 """Conservative normalization of Claude's terminal JSON, without text heuristics."""
 
-import json
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
 
+from nightshift.json_io import load_unique_json
 from nightshift.models import Model, NonNegativeInt, UsageObservation, utc_now
 from nightshift.redaction import redact
 
@@ -74,15 +74,6 @@ class _WireResult(BaseModel):
     uuid: str | None = None
 
 
-def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError("duplicate JSON key")
-        result[key] = value
-    return result
-
-
 def normalize_result(
     stdout: str,
     stderr: str,
@@ -92,7 +83,7 @@ def normalize_result(
 ) -> RunnerResult:
     """Only a coherent terminal message plus exit 0 can mean runner success."""
     try:
-        payload = json.loads(stdout, object_pairs_hook=_unique_object)
+        payload = load_unique_json(stdout)
         wire = _WireResult.model_validate(payload)
     except (ValueError, RecursionError):
         return RunnerResult(

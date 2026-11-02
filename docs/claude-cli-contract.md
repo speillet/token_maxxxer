@@ -99,8 +99,9 @@ retournées sont plafonnées à 1 Mio par flux. La taille temporaire est surveil
 par sondages pendant le processus ; ce plafond n'est pas une limite disque dure.
 Les formats de clés reconnus, Bearer et champs de credentials usuels sont masqués
 avant restitution, y compris le JSON décodé et les valeurs citées avec espaces.
-En texte invalide ou tronqué, la fin d'une ligne portant un champ de credential
-est supprimée. Ce filtre ne remplace pas l'audit des données à journaliser.
+En texte invalide ou tronqué, tout le texte après un champ de credential est
+supprimé, y compris les continuations de ligne. Le décodeur d'expurgation refuse
+aussi les clés dupliquées. Ce filtre ne remplace pas l'audit des données à journaliser.
 Le timeout, l'interruption clavier et la sortie normale nettoient le groupe de
 processus (SIGTERM puis SIGKILL après grâce). Un descendant qui crée sa propre
 session sort de cette garantie de groupe ; aucune sandbox système n'est annoncée.
