@@ -30,6 +30,7 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | CP-007 | `ae1ecf7` | Socle Python documenté, point de départ du jalon 2 | Arbre propre à la reprise ; PR #1 ouverte |
 | CP-008 | Commit `feat(runner): normalize terminal results and redact diagnostics` | Classification conservatrice du JSON terminal, usage inconnu et diagnostics expurgés | Fixtures synthétiques ; tests de résultats et de credentials factices |
 | CP-009 | Commit `feat(process): bound subprocess execution and clean process groups` | stdin littéral, sorties séparées, délais, limites de sortie et arrêt des descendants | Tests POSIX, enfant ignorant SIGTERM, parent terminé et interruption clavier |
+| CP-010 | Commit `feat(runner): add qualified CLI transport and deterministic fake` | Interface ClaudeRunner, faux déterministe et précontrôles avant une seule invocation | Faux CLI local, refus d'environnement incompatible, version différente et compte non confirmé |
 
 ## Livraison du socle
 

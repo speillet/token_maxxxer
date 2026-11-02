@@ -10,20 +10,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
 
+from nightshift.authentication import API_CONFIGURATION_VARIABLES
 from nightshift.config import Config
 from nightshift.storage import TaskStore
-
-# Values are never returned or logged, including when the CLI itself prints an error.
-API_CONFIGURATION_VARIABLES = (
-    "ANTHROPIC_API_KEY",
-    "ANTHROPIC_AUTH_TOKEN",
-    "ANTHROPIC_BASE_URL",
-    "CLAUDE_CODE_USE_BEDROCK",
-    "CLAUDE_CODE_USE_VERTEX",
-    "CLAUDE_CODE_USE_FOUNDRY",
-    "CLAUDE_CODE_API_KEY_HELPER",
-    "CLAUDE_CODE_OAUTH_TOKEN",
-)
 
 
 @dataclass(frozen=True)
