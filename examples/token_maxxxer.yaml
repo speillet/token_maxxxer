@@ -1,5 +1,10 @@
 # Tous les chemins relatifs sont résolus depuis ce fichier.
 timezone: Europe/Paris
+provider:
+  name: claude
+  model: claude-sonnet-5-5
+  max_output_tokens: 4096
+  timeout_seconds: 60
 schedule:
   windows:
     - days: [mon, tue, wed, thu, fri, sat, sun]
@@ -17,8 +22,8 @@ execution:
   max_active_minutes_per_window: 240
   retry_backoff_seconds: [300, 900, 1800]
 authentication:
-  mode: claude_subscription
-  reject_api_configuration: true
+  mode: api_key
+  env_file: ../.env
 git:
   worktree_per_task: true
   auto_merge: false

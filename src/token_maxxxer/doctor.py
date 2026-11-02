@@ -1,7 +1,6 @@
 """Read-only diagnostics; no inference, credential extraction or account changes."""
 
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -9,9 +8,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
 
-from token_maxxxer.authentication import API_CONFIGURATION_VARIABLES
 from token_maxxxer.config import Config
-from token_maxxxer.json_io import load_unique_json
+from token_maxxxer.credentials import credential_configured
 from token_maxxxer.storage import TaskStore
 
 
@@ -47,7 +45,7 @@ def _writable_ancestor(path: Path) -> bool:
 def diagnose(config: Config) -> list[Check]:
     checks = [
         Check("python", "ok", f"Python {sys.version_info.major}.{sys.version_info.minor}"),
-        Check("configuration", "ok", "configuration valide ; aucune exécution activée"),
+        Check("configuration", "ok", "configuration valide ; aucune requête API effectuée"),
     ]
     git = shutil.which("git")
     if not git:
@@ -79,53 +77,26 @@ def diagnose(config: Config) -> list[Check]:
                 )
             )
 
-    incompatible = [name for name in API_CONFIGURATION_VARIABLES if os.environ.get(name)]
+    supported = config.provider.name in ("claude", "openai")
     checks.append(
         Check(
-            "authentication_environment",
-            "error" if incompatible else "ok",
-            "variables incompatibles : " + ", ".join(incompatible)
-            if incompatible
-            else "aucune variable API ou fournisseur incompatible détectée",
+            "provider",
+            "ok" if supported else "error",
+            f"{config.provider.name} / {config.provider.model}"
+            if supported
+            else "Copilot : intégration SDK prévue, adaptateur indisponible",
         )
     )
-    claude = shutil.which("claude")
-    if not claude:
-        checks.append(Check("claude", "error", "CLI Claude introuvable dans PATH"))
-    else:
-        version = _probe([claude, "--version"])
-        match = re.match(r"^(\d+\.\d+\.\d+)\b", version.stdout) if version else None
-        valid = version is not None and version.returncode == 0 and match is not None
-        checks.append(
-            Check(
-                "claude_version",
-                "ok" if valid else "error",
-                f"version détectée : {match.group(1)} (non qualifiée)"
-                if valid and match
-                else "version Claude illisible",
-            )
+    configured = credential_configured(config.provider, config.authentication.env_file)
+    checks.append(
+        Check(
+            "credential_configuration",
+            "ok" if configured else "error",
+            "clé ou référence configurée (non résolue, non authentifiée)"
+            if configured
+            else "clé ou référence absente pour le fournisseur sélectionné",
         )
-        result = _probe([claude, "auth", "status"])
-        authenticated = False
-        if result is not None and result.returncode == 0:
-            try:
-                status = load_unique_json(result.stdout)
-                authenticated = (
-                    isinstance(status, dict)
-                    and status.get("loggedIn") is True
-                    and status.get("authMethod") == "claude.ai"
-                )
-            except (ValueError, RecursionError):
-                pass
-        checks.append(
-            Check(
-                "claude_authentication",
-                "ok" if authenticated else "error",
-                "connexion claude.ai détectée"
-                if authenticated
-                else "connexion abonnement non confirmée ; utiliser claude auth login",
-            )
-        )
+    )
 
     for label, path in (
         ("database", config.storage.database),
@@ -147,15 +118,11 @@ def diagnose(config: Config) -> list[Check]:
     # Validate existing schema without migrating, creating or changing task status.
     if config.storage.database.exists():
         TaskStore(config.storage.database).list_tasks()
-    checks.extend(
-        (
-            Check(
-                "extra_usage", "warning", "crédits supplémentaires : vérifier le réglage du compte"
-            ),
-            Check(
-                "repository_audit", "warning", "hooks, MCP et settings à auditer avant le jalon 2"
-            ),
-            Check("execution_gate", "warning", "jalon 0 à qualifier ; exécuteur réel indisponible"),
+    checks.append(
+        Check(
+            "execution_gate",
+            "warning",
+            "query génère du texte ; exécution automatique de code à raccorder",
         )
     )
     return checks

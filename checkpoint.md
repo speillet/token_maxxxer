@@ -45,6 +45,7 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | CP-014 | `0342492` | Convention de référence locale au gestionnaire de credentials, exemple sans secret et livraison exécuteur | `.env` ignoré par Git et permissions locales 0600 ; aucune clé dans les fichiers suivis |
 | CP-015 | `f887f88` | Dernière révision de la PR #2, avant nouveau cadrage | Point de retour du nom et de l'ancien parcours abonnement |
 | CP-016 | Commit `refactor!: rename package and CLI to token_maxxxer` | Nom cohérent du paquet, commande, exemples, stockage par défaut et références publiques | Suite existante et outils de qualité après renommage |
+| CP-017 | Commit `feat(api): add Claude and OpenAI providers with private credentials` | Interface Provider, SDK API, query explicite, doctor sans CLI, références de credentials résolues à la demande | Transports HTTP simulés, limites, erreurs sans relance, clés absentes et diagnostic sans lecture de secret |
 
 ## Livraison du socle
 

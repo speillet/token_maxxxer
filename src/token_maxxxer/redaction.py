@@ -5,7 +5,9 @@ import re
 
 from token_maxxxer.json_io import load_unique_json
 
-_PROVIDER_KEY = re.compile(r"\bsk-(?:ant|proj)-[A-Za-z0-9_-]+")
+_PROVIDER_KEY = re.compile(
+    r"\b(?:sk-[A-Za-z0-9_-]+|github_pat_[A-Za-z0-9_]+|gh[pousr]_[A-Za-z0-9_]+)"
+)
 _BEARER = re.compile(r"\bBearer\s+[A-Za-z0-9._~+/-]+=*", re.IGNORECASE)
 _NAMED_SECRET = re.compile(
     r"((?<![a-z0-9])(?:api[_-]?key|access[_-]?token|refresh[_-]?token|"

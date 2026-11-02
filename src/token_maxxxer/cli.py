@@ -8,7 +8,9 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from token_maxxxer.config import load_config
+from token_maxxxer.credentials import resolve_credential
 from token_maxxxer.doctor import checks_as_dicts, diagnose
+from token_maxxxer.providers import GenerationRequest, create_provider
 from token_maxxxer.queue import import_document, preview_next
 from token_maxxxer.storage import TaskStore
 
@@ -36,12 +38,34 @@ def _parser() -> argparse.ArgumentParser:
         help="seule la simulation est disponible dans ce jalon",
     )
     run.add_argument("--json", action="store_true")
+    query = commands.add_parser("query", help="envoyer une consigne au fournisseur API sélectionné")
+    query.add_argument(
+        "--prompt-file", type=Path, required=True, help="fichier UTF-8, ou - pour stdin"
+    )
+    query.add_argument("--json", action="store_true")
     return parser
 
 
 def _execute(arguments: argparse.Namespace) -> int:
     config = load_config(arguments.config)
     store = TaskStore(config.storage.database)
+    if arguments.command == "query":
+        if str(arguments.prompt_file) == "-":
+            prompt = sys.stdin.read(1_048_577)
+        else:
+            with arguments.prompt_file.open(encoding="utf-8") as stream:
+                prompt = stream.read(1_048_577)
+        request = GenerationRequest(prompt=prompt, settings=config.provider)
+        provider = create_provider(config.provider)
+        credential = resolve_credential(config.provider, config.authentication.env_file)
+        result = provider.generate(request, credential)
+        if arguments.json:
+            print(result.model_dump_json())
+        elif result.status == "success":
+            print(result.text)
+        else:
+            print(f"{result.status}: {result.error_code}", file=sys.stderr)
+        return 0 if result.status == "success" else 1
     if arguments.command == "doctor":
         checks = diagnose(config)
         if arguments.json:
@@ -76,7 +100,8 @@ def _execute(arguments: argparse.Namespace) -> int:
         "dry_run": True,
         "execution_enabled": False,
         "schedule_evaluated": False,
-        "reason": "simulation de sélection ; exécuteur au jalon 2 et planning au jalon 5",
+        "provider": {"name": config.provider.name, "model": config.provider.model},
+        "reason": "simulation de sélection ; exécution de code et planning à raccorder",
         "task": record.task.model_dump(mode="json") if record else None,
         "status": record.status.value if record else None,
     }

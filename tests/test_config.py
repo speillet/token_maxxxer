@@ -9,6 +9,7 @@ from token_maxxxer.yaml_io import DocumentError, load_yaml
 
 def configuration(tmp_path: Path) -> dict:
     return {
+        "provider": {"name": "claude", "model": "fixture-model"},
         "repositories": {"allowed": [str(tmp_path)]},
         "schedule": {"windows": [{"days": ["mon"], "start": "22:00", "end": "07:00"}]},
     }
@@ -33,7 +34,7 @@ def test_paths_are_relative_to_source_even_for_defaults(config_path: Path, monke
         ("execution", {"retry_backoff_seconds": []}, "retry_backoff_seconds"),
         ("execution", {"task_timeout_minutes": True}, "task_timeout_minutes"),
         ("git", {"auto_merge": True}, "auto_merge"),
-        ("authentication", {"reject_api_configuration": False}, "reject_api_configuration"),
+        ("authentication", {"mode": "claude_subscription"}, "mode"),
         ("storage", {"database": "same", "checkpoints": "same"}, "distinctes"),
         ("unexpected", "secret-value", "Extra inputs"),
     ],
