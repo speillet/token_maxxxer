@@ -87,6 +87,7 @@ def discover_skills(repository: Path) -> list[Skill]:
         ("user", Path.home() / directory / "skills")
         for directory in (".agents", ".codex", ".claude")
     )
+    directories.append(("user", Path.home() / ".codex/skills/.system"))
     result: list[Skill] = []
     seen_paths: set[Path] = set()
     seen_ids: set[str] = set()

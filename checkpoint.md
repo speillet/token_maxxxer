@@ -76,7 +76,8 @@ their heads are confirmed to be ancestors of main; rollback commits remain reach
 | CP-023 | `2bbe5a7` | Retire unused code/dependencies and use English application messages; 125 retained tests |
 | CP-024 | `0cc208d` | English README, roadmap, provider contract, contribution guide and checkpoint ledger; four successful CI jobs |
 | CP-025 | `2f75c84` | Local path/file-URL validation, bounded discovery, private recent-path history, repository/user SKILL.md catalogs and built-in instructions; tested without AI calls |
-| CP-026 | `feat(agent): run bounded skills in isolated worktrees` | Typed file tools, signal/deadline cancellation, approved verification, per-repository locking, private session records and reports; original working trees remain untouched |
+| CP-026 | `d24eb13` | Typed file tools, signal/deadline cancellation, approved verification, per-repository locking, private session records and reports; original working trees remain untouched |
+| CP-027 | `feat(cli): add interactive overnight sessions and inspection` | No-argument picker, explicit night/repository/skill/session commands, confirmed API use, provider profile and network-free previews; 191 tests pass locally |
 
 Use `git log --all --oneline` to find the SHA for a checkpoint identified by
 commit subject. Earlier checkpoint source is recoverable even after its branch

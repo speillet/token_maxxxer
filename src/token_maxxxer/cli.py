@@ -1,4 +1,4 @@
-"""User commands for the foundation milestone. Real execution is deliberately gated."""
+"""Task toolkit and interactive overnight skill sessions."""
 
 import argparse
 import json
@@ -10,8 +10,11 @@ from pathlib import Path
 from token_maxxxer.config import load_config
 from token_maxxxer.credentials import resolve_credential
 from token_maxxxer.doctor import checks_as_dicts, diagnose
+from token_maxxxer.night_cli import add_commands
+from token_maxxxer.night_cli import execute as execute_night_command
 from token_maxxxer.providers import MAX_PROMPT_CHARACTERS, GenerationRequest, create_provider
 from token_maxxxer.queue import import_document, preview_next
+from token_maxxxer.redaction import redact
 from token_maxxxer.storage import TaskStore
 
 
@@ -19,8 +22,9 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="token_maxxxer", description="token_maxxxer — local API task toolkit"
     )
-    parser.add_argument("--config", type=Path, default=Path("token_maxxxer.yaml"))
-    commands = parser.add_subparsers(dest="command", required=True)
+    parser.add_argument("--config", type=Path)
+    commands = parser.add_subparsers(dest="command")
+    add_commands(parser, commands)
     doctor = commands.add_parser(
         "doctor", help="diagnose configuration without API requests or changes"
     )
@@ -47,7 +51,9 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _execute(arguments: argparse.Namespace) -> int:
-    config = load_config(arguments.config)
+    if arguments.command in (None, "night", "repos", "skills", "sessions"):
+        return execute_night_command(arguments)
+    config = load_config(arguments.config or Path("token_maxxxer.yaml"))
     store = TaskStore(config.storage.database)
     if arguments.command == "query":
         if str(arguments.prompt_file) == "-":
@@ -71,7 +77,15 @@ def _execute(arguments: argparse.Namespace) -> int:
     if arguments.command == "doctor":
         checks = diagnose(config)
         if arguments.json:
-            print(json.dumps({"checks": checks_as_dicts(checks), "execution_enabled": False}))
+            print(
+                json.dumps(
+                    {
+                        "checks": checks_as_dicts(checks),
+                        "execution_enabled": False,
+                        "night_execution_available": True,
+                    }
+                )
+            )
         else:
             for check in checks:
                 print(f"{check.status.upper():7} {check.name}: {check.message}")
@@ -120,6 +134,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     arguments = _parser().parse_args(argv)
     try:
         return _execute(arguments)
+    except KeyboardInterrupt:
+        print("Interrupted.", file=sys.stderr)
+        return 130
     except (OSError, ValueError, sqlite3.Error) as exc:
-        print(f"Error: {exc}", file=sys.stderr)
+        print(f"Error: {redact(str(exc))}", file=sys.stderr)
         return 2

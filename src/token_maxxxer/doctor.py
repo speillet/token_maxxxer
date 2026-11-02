@@ -120,7 +120,7 @@ def diagnose(config: Config) -> list[Check]:
         Check(
             "execution_gate",
             "warning",
-            "query generates text; automatic code execution is not connected",
+            "night runs bounded skill sessions; task-queue execution is not connected",
         )
     )
     return checks
