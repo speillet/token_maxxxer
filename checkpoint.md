@@ -20,11 +20,12 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | Repère | Révision | Contenu | Validation |
 | --- | --- | --- | --- |
 | CP-000 | `ad0992b` | README et roadmap d'origine | Arbre Git propre avant implémentation |
-| CP-001 | Commit `docs: record CLI contract and implementation checkpoints` | Contrat externe et protocole de suivi | Sources officielles relues, limites locales consignées |
+| CP-001 | `0fdce5a` | Contrat externe et protocole de suivi | Sources officielles relues, limites locales consignées |
 | CP-002 | `26469a7` | Packaging verrouillé, YAML sûr, configuration et modèles | 31 tests ciblés configuration/modèles, Ruff et mypy |
-| CP-003 | Commit `feat(queue): persist trusted tasks with atomic idempotent imports` | Migration SQLite initiale, import atomique, ordre priorité/arrivée et lecture seule | 9 tests de file : concurrence d'import, rollback de lot, autorisation et conservation des états |
-| CP-004 | Commit `feat(cli): add doctor and read-only task previews` | Diagnostic sans inférence, import/liste, `run --dry-run` et JSON | 10 tests CLI ; 50 tests au total, paquet construit |
-| CP-005 | Commit `ci: validate the Python foundation on macOS and Linux` | CI Python 3.11/3.13, conventions et documentation des commandes disponibles | Actions épinglées par SHA ; contrôles locaux à jour, résultats distants dans la PR |
+| CP-003 | `dbcb978` | Migration SQLite initiale, import atomique, ordre priorité/arrivée et lecture seule | 9 tests de file : concurrence d'import, rollback de lot, autorisation et conservation des états |
+| CP-004 | `9dcefaf` | Diagnostic sans inférence, import/liste, `run --dry-run` et JSON | 10 tests CLI ; 50 tests au total, paquet construit |
+| CP-005 | `425075f` | CI Python 3.11/3.13, conventions et documentation des commandes disponibles | Actions épinglées par SHA ; 50 tests locaux sur les deux versions et smoke CLI en processus séparés |
+| CP-006 | Commit `fix(config): reject impossible storage path hierarchies` | Correction du constat P2 des revues Standards et Spec : chemins SQLite imbriqués et parent fichier refusés | 5 cas de régression supplémentaires ; validations finales dans la PR |
 
 Chaque livraison ajoute ici son périmètre, ses vérifications et le nom du commit.
 Pour retrouver son SHA : `git log --oneline --all`. Les commits portent une seule

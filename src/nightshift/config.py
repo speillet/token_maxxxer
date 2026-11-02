@@ -105,8 +105,12 @@ class StorageConfig(Model):
 
     @model_validator(mode="after")
     def distinct_paths(self) -> "StorageConfig":
-        if self.database == self.checkpoints:
-            raise ValueError("les bases applicative et LangGraph doivent être distinctes")
+        if self.database.is_relative_to(self.checkpoints) or self.checkpoints.is_relative_to(
+            self.database
+        ):
+            raise ValueError(
+                "les bases applicative et LangGraph doivent être distinctes et non imbriquées"
+            )
         for database in (self.database, self.checkpoints):
             if database.is_dir() or database == self.reports or database in self.reports.parents:
                 raise ValueError(
@@ -116,6 +120,12 @@ class StorageConfig(Model):
                 raise ValueError("les bases SQLite doivent être séparées du répertoire de rapports")
         if self.reports.exists() and not self.reports.is_dir():
             raise ValueError("reports doit désigner un répertoire")
+        for path in (self.database, self.checkpoints, self.reports):
+            parent = path.parent
+            while not parent.exists() and parent != parent.parent:
+                parent = parent.parent
+            if not parent.is_dir():
+                raise ValueError("le parent d'un emplacement de stockage doit être un répertoire")
         return self
 
 

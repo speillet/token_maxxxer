@@ -71,6 +71,30 @@ def test_allowlist_resolves_symlinks_and_rejects_duplicates(tmp_path) -> None:
         Config.model_validate(data)
 
 
+@pytest.mark.parametrize("reverse", [False, True])
+def test_sqlite_paths_cannot_be_nested_before_creation(tmp_path, reverse) -> None:
+    database = tmp_path / "new-storage"
+    checkpoints = database / "checkpoints.sqlite"
+    if reverse:
+        database, checkpoints = checkpoints, database
+    data = configuration(tmp_path)
+    data["storage"] = {"database": str(database), "checkpoints": str(checkpoints)}
+    with pytest.raises(ValidationError, match="non imbriquées"):
+        Config.model_validate(data)
+    assert not (tmp_path / "new-storage").exists()
+
+
+@pytest.mark.parametrize("field", ["database", "checkpoints", "reports"])
+def test_storage_parent_cannot_be_an_existing_file(tmp_path, field) -> None:
+    parent_file = tmp_path / "file"
+    parent_file.write_text("keep")
+    data = configuration(tmp_path)
+    data["storage"] = {field: str(parent_file / "missing-parent" / "storage")}
+    with pytest.raises(ValidationError, match=r"parent.*répertoire"):
+        Config.model_validate(data)
+    assert parent_file.read_text() == "keep"
+
+
 @pytest.mark.parametrize("content", ["a: 1\na: 2", "a: &x [1]\nb: *x", "!!python/object:os {}"])
 def test_unsafe_or_ambiguous_yaml_is_rejected(tmp_path, content) -> None:
     path = tmp_path / "input.yaml"
