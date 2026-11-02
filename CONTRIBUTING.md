@@ -18,6 +18,8 @@ uv build --no-sources
   and authorized GitHub credentials.
 - Validate configuration and task input with Pydantic. Reject unknown fields
   and repository paths that are not explicitly allowed.
+  An explicit night-session selection grants access to that repository for
+  that session; it does not change the imported task queue's allowlist.
 - Pass external commands as argument arrays without a shell. Define timeouts
   and cancellation behavior before introducing a new external process.
 - Do not extract OAuth credentials or include authentication values in logs.
@@ -29,6 +31,9 @@ uv build --no-sources
   Version migrations and reject unknown databases or newer schemas.
 - Test changed behavior, failures, and trust boundaries. Use simulated HTTP and
   temporary repositories; tests must never call a real AI API.
+  Exercise night-session limits, isolation, typed actions, verification and
+  interruption with simulated providers. Keep prompts and file contents out of
+  persisted journals; record only approved metadata and redacted check output.
 - Add modules and dependencies when they become necessary. Remove abandoned
   implementations and their tests while preserving relevant security coverage.
 - Write maintained documentation, user-facing messages, examples, and test

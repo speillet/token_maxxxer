@@ -15,7 +15,9 @@ has been retired. Historical implementations remain available in Git.
 | 0 — Provider contracts | Defined; real-account pilot open | Official API contracts and simulated tests; no real account calls |
 | 1 — Python foundation | Delivered | Validated configuration, models, SQLite imports, diagnostics, previews |
 | 2 — API generation | Implemented | Claude/OpenAI adapters; Copilot not yet implemented |
-| 3–7 | Planned | Code-editing tools, worktrees, durable workflow, scheduling, services |
+| 3 — Code tools and isolation | Partly implemented | Foreground night sessions, typed tools, worktrees and approved checks; imported-task execution remains gated |
+| Interactive overnight CLI | Implemented | Local discovery/history, skill picker, bounded cycles and private reports; simulated providers only |
+| 4–7 | Planned | Durable workflow/recovery, schedule windows, services and real-account pilots |
 
 Text generation does not verify or complete a Git task. Tests use fictional
 credentials and simulated HTTP without billed calls. Repository documentation,
@@ -77,7 +79,8 @@ their heads are confirmed to be ancestors of main; rollback commits remain reach
 | CP-024 | `0cc208d` | English README, roadmap, provider contract, contribution guide and checkpoint ledger; four successful CI jobs |
 | CP-025 | `2f75c84` | Local path/file-URL validation, bounded discovery, private recent-path history, repository/user SKILL.md catalogs and built-in instructions; tested without AI calls |
 | CP-026 | `d24eb13` | Typed file tools, signal/deadline cancellation, approved verification, per-repository locking, private session records and reports; original working trees remain untouched |
-| CP-027 | `feat(cli): add interactive overnight sessions and inspection` | No-argument picker, explicit night/repository/skill/session commands, confirmed API use, provider profile and network-free previews; 191 tests pass locally |
+| CP-027 | `18090c5` | No-argument picker, explicit night/repository/skill/session commands, confirmed API use, provider profile and network-free previews; 191 tests pass locally |
+| CP-028 | `docs: explain interactive overnight sessions and recovery` | CLI usage, skill/tool scope, foreground limits, reports and review/rollback procedure |
 
 Use `git log --all --oneline` to find the SHA for a checkpoint identified by
 commit subject. Earlier checkpoint source is recoverable even after its branch
@@ -106,6 +109,33 @@ from source rollback.
 
 1. Read the integration ledger and verify the latest main revision before continuing.
 2. Qualify real accounts only during an explicitly requested call with renewed credentials.
-3. Implement typed code tools, approved worktrees and verification before run --once.
+3. Connect imported tasks to stable worktrees and acceptance verification before run --once.
 4. Add the Copilot SDK adapter with explicit GitHub authentication.
 5. Install and implement the durable workflow, pauses, scheduling and services at their milestones.
+
+## Overnight CLI delivery
+
+The feature branch starts at `c72dd91`. See [the execution contract](docs/night-cli.md).
+The interactive CLI selects a local repository, suggests recent paths, discovers
+repository/user skills, and runs the chosen instructions through typed tools.
+It supports Claude/OpenAI without changing the existing credential contract.
+Edit sessions require a clean repository, lock the common Git directory and
+retain a unique worktree/branch from the recorded HEAD. Only explicitly approved
+verification argument arrays execute. Work remains uncommitted and needs review.
+
+Session records are written before API requests/worktree preparation/checks and
+after results. Duration, call count, tool-denial limits, completion, API errors
+and signals stop the foreground loop. Prompts and file contents are not journaled.
+Latest cycle summaries/check outputs are bounded and redacted. Interrupted or
+ambiguous crash records remain inspectable, without automatic replay.
+
+History, profiles and runs use a separate private state directory, outside the
+selected repository; the task-queue schema and local `.env`/Keychain stay intact.
+Git source rollback does not remove those records or recover uncommitted edits.
+Before removing a run's worktree or branch, inspect `status` (including new files)
+and `diff`, commit/back up valuable work and record the session's base commit.
+
+Local simulated-provider validation currently passes 191 tests. Account access,
+real model compliance and a complete overnight pilot are not claimed. The CLI
+is foreground-only: no schedule-window service, durable resume, arbitrary shell,
+external skill plugins, automatic commits, push or merge are implemented.
