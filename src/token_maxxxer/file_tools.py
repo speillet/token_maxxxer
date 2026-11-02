@@ -21,9 +21,6 @@ _DENIED_DIRECTORIES = {
     ".docker",
     ".kube",
     ".terraform",
-    ".worktrees",
-    "worktrees",
-    "var",
 }
 _DENIED_SUFFIXES = {
     ".tfstate",

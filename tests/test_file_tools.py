@@ -26,6 +26,16 @@ def test_tools_read_only_tracked_text_and_redact_detected_credentials(repository
         tools.write_file("main.py", "changed")
 
 
+def test_tracked_source_directories_with_generic_names_are_readable(repository) -> None:
+    for directory in ("var", "worktrees"):
+        (repository / "src" / directory).mkdir(parents=True)
+        (repository / "src" / directory / "models.py").write_text("VALUE = 1\n")
+        track(repository, f"src/{directory}/models.py")
+    tools = FileTools(repository, editable=False)
+    assert tools.read_file("src/var/models.py") == "VALUE = 1\n"
+    assert "src/worktrees/models.py" in tools.list_files("src/")["files"]
+
+
 @pytest.mark.parametrize(
     "path",
     [
