@@ -176,6 +176,24 @@ def test_repository_skill_resources_are_read_from_isolated_worktree(repository, 
     assert "Updated guide.\\n" in requests[3].prompt
 
 
+def test_local_failures_record_exception_type_without_message(repository, tmp_path) -> None:
+    plan = NightPlan(
+        repository=repository,
+        skill="builtin:improve-code",
+        provider=ProviderConfig(model="fixture"),
+    )
+    skill = select_skill(discover_skills(repository), plan.skill, mode="edit")
+
+    class FailingProvider:
+        def generate(self, request, credential):
+            raise OSError("fictional-private local detail")
+
+    session = run_night(plan, skill, tmp_path / "state", FailingProvider(), SecretStr("fixture"))
+    assert session.reason == "local_operation_failed"
+    assert {"type": "local_error", "exception": "OSError"} in session.events
+    assert "fictional-private" not in public_session_json(session)
+
+
 def test_failed_report_replacement_preserves_previous_private_record(tmp_path, monkeypatch) -> None:
     path = tmp_path / "report.md"
     write_private_text(path, "Complete previous report.\n")

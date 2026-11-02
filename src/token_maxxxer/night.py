@@ -373,9 +373,10 @@ def run_night(
             session.state, session.reason = "completed", "deadline_reached"
         except KeyboardInterrupt:
             session.state, session.reason = "interrupted", "interrupted_by_signal"
-        except Exception:
+        except Exception as exc:
             # Never persist exception strings: they may contain source or provider secrets.
             session.state, session.reason = "failed", "local_operation_failed"
+            session.events.append({"type": "local_error", "exception": type(exc).__name__})
         finally:
             if tools:
                 session.changed_files = sorted(tools.changed)
