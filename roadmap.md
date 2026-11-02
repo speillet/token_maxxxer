@@ -1,6 +1,9 @@
 # Roadmap — Claude Nightshift
 
-**Statut : conception, aucun jalon technique validé.** Document compagnon du [readme.md](readme.md). Les cases représentent les travaux à réaliser, pas des fonctionnalités existantes.
+**Statut : socle Python livré et testé hors ligne ; jalon 0 opérationnel ouvert.**
+Document compagnon du [readme.md](readme.md). Les cases cochées indiquent les
+travaux vérifiés ; preuves et retours arrière dans [checkpoint.md](checkpoint.md).
+L'exécuteur Claude, le workflow durable et le planning restent à implémenter.
 
 ## Stratégie de réalisation
 
@@ -35,18 +38,24 @@ Le MVP reçoit des tâches explicites, travaille sur un seul dépôt à la fois 
 
 **Livrable :** `docs/claude-cli-contract.md`, fixtures anonymisées et version compatible.
 
+État actuel : [contrat documentaire](docs/claude-cli-contract.md) rédigé à partir
+des sources officielles du 2 novembre 2026. CLI absent sur la machine de
+développement ; version, compte, crédits supplémentaires et appel réel restent
+à qualifier. Aucune fixture observée n'est disponible. Le socle est développé
+hors ligne sans activer le chemin abonnement pendant cette validation.
+
 **Validation :** un appel CLI fonctionne avec l'abonnement ; aucun appel API distinct ni extraction de jeton n'est requis. Si cette hypothèse échoue, arrêter le chemin abonnement et réviser le projet avant tout choix payant.
 
 ## Jalon 1 — Préparer le socle Python
 
-- [ ] Initialiser `pyproject.toml`, l'environnement et un fichier de dépendances verrouillé.
-- [ ] Ajouter LangGraph, LangChain Core, le checkpointer SQLite compatible, Pydantic, YAML et une bibliothèque CLI si utile.
-- [ ] Créer les modules décrits dans le README.
-- [ ] Définir les modèles `Task`, `Attempt`, `ExecutionState` et `UsageObservation`.
-- [ ] Valider les chemins, fuseaux, créneaux, bornes de reprise et identifiants de tâches.
-- [ ] Implémenter `doctor`, l'import YAML, la liste des tâches et `--dry-run`.
-- [ ] Définir la migration initiale SQLite et exclure `var/`, secrets et worktrees du suivi Git.
-- [ ] Configurer lint et tests ciblés en CI.
+- [x] Initialiser `pyproject.toml`, l'environnement et un fichier de dépendances verrouillé.
+- [x] Ajouter LangGraph, LangChain Core, le checkpointer SQLite compatible, Pydantic, YAML et une bibliothèque CLI si utile.
+- [ ] Créer les modules décrits dans le README. Le socle crée `config`, `models`, `storage`, `queue`, `doctor`, `yaml_io` et `cli` ; les modules d'exécution seront ajoutés à leur jalon, sans interfaces vides.
+- [x] Définir les modèles `Task`, `Attempt`, `ExecutionState` et `UsageObservation`.
+- [x] Valider les chemins, fuseaux, créneaux, bornes de reprise et identifiants de tâches.
+- [x] Implémenter `doctor`, l'import YAML, la liste des tâches et `--dry-run`.
+- [x] Définir la migration initiale SQLite et exclure `var/`, secrets et worktrees du suivi Git.
+- [x] Configurer lint et tests ciblés en CI.
 
 **Validation :** configuration invalide rejetée avec un message précis ; import répété sans doublon ; dry-run sans lancement Claude ni mutation du dépôt.
 

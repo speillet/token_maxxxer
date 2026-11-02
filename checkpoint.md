@@ -8,7 +8,7 @@ remplace pas les checkpoints d'exécution LangGraph du futur jalon 4.
 | Jalon | État | Preuves / suite |
 | --- | --- | --- |
 | 0 — Abonnement | Partiel | Contrat documentaire ; CLI absent de cette machine, validation du compte et appel réel à faire |
-| 1 — Socle Python | En cours | Configuration, modèles, SQLite, CLI en lecture/simulation, tests et CI |
+| 1 — Socle Python | Socle livré | Configuration, modèles, SQLite, CLI en lecture/simulation et tests locaux ; modules d'exécution aux jalons suivants |
 | 2 à 7 | À faire | Suivre `roadmap.md` ; aucune exécution Claude réelle dans ce lot |
 
 Le socle se développe hors ligne pendant que la validation opérationnelle du
@@ -24,6 +24,7 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | CP-002 | `26469a7` | Packaging verrouillé, YAML sûr, configuration et modèles | 31 tests ciblés configuration/modèles, Ruff et mypy |
 | CP-003 | Commit `feat(queue): persist trusted tasks with atomic idempotent imports` | Migration SQLite initiale, import atomique, ordre priorité/arrivée et lecture seule | 9 tests de file : concurrence d'import, rollback de lot, autorisation et conservation des états |
 | CP-004 | Commit `feat(cli): add doctor and read-only task previews` | Diagnostic sans inférence, import/liste, `run --dry-run` et JSON | 10 tests CLI ; 50 tests au total, paquet construit |
+| CP-005 | Commit `ci: validate the Python foundation on macOS and Linux` | CI Python 3.11/3.13, conventions et documentation des commandes disponibles | Actions épinglées par SHA ; contrôles locaux à jour, résultats distants dans la PR |
 
 Chaque livraison ajoute ici son périmètre, ses vérifications et le nom du commit.
 Pour retrouver son SHA : `git log --oneline --all`. Les commits portent une seule
@@ -48,7 +49,7 @@ worktrees non validés. La migration initiale n'a pas de downgrade destructif.
 
 ## Prochaine reprise
 
-1. Finir et valider le socle du jalon 1.
+1. Consulter les résultats CI de la PR du socle.
 2. Installer/identifier le CLI officiel, vérifier la connexion abonnement et les
    crédits supplémentaires dans le compte, puis consigner un appel minimal.
 3. Commencer le jalon 2 avec le faux exécuteur et les scénarios d'erreur.
