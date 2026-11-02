@@ -28,7 +28,7 @@ messages, examples, and test descriptions are maintained in English.
 | [#1](https://github.com/speillet/token_maxxxer/pull/1) | Python foundation and persistent task queue | Merged into main as `2b38985`; four CI checks passed after retrying a cancelled job |
 | [#2](https://github.com/speillet/token_maxxxer/pull/2) | Retired subscription CLI prototype | Closed as superseded; shared work preserved through #3 |
 | [#3](https://github.com/speillet/token_maxxxer/pull/3) | Current name and Claude/OpenAI API providers | Retargeted to main and merged as `f7f5fb2`; four CI checks passed |
-| English/API cleanup | Remove dead code and unused dependencies; translate maintained content | Validate and merge through its own PR |
+| [#4](https://github.com/speillet/token_maxxxer/pull/4) | Remove dead code and unused dependencies; translate maintained content | Cleanup delivery; integration status and merge commit are available on the linked PR |
 
 The cleanup branch starts at `fc0a7c3`. It removes the old CLI adapter, its
 subprocess transport and authentication constants, terminal wire parser, fake
@@ -41,6 +41,10 @@ The API result is now `GenerationResult` in `results.py`. `response_id` replaces
 The SQLite application ID and schema are unchanged, and local credentials and
 databases are preserved. After cleanup, 125 relevant tests pass locally; removed
 prototype tests account for the lower count compared with the earlier 211-test suite.
+The retained suite passes under Python 3.11 and 3.13. Ruff, strict typing and
+package builds pass, and all four macOS/Linux CI jobs at `0cc208d` succeeded.
+Standards and Spec reviews reported no findings. Branches are removed only after
+their heads are confirmed to be ancestors of main; rollback commits remain reachable.
 
 ## Rollback points
 
@@ -70,7 +74,7 @@ prototype tests account for the lower count compared with the earlier 211-test s
 | CP-021 | `0d057cc` | Reject oversized prompts before API access and preserve whitespace; 211 tests |
 | CP-022 | `fc0a7c3` | Final PR #3 head; four successful macOS/Linux CI jobs |
 | CP-023 | `2bbe5a7` | Retire unused code/dependencies and use English application messages; 125 retained tests |
-| CP-024 | Commit `docs: maintain repository documentation in English` | English README, roadmap, provider contract, contribution guide and checkpoint ledger |
+| CP-024 | `0cc208d` | English README, roadmap, provider contract, contribution guide and checkpoint ledger; four successful CI jobs |
 
 Use `git log --all --oneline` to find the SHA for a checkpoint identified by
 commit subject. Earlier checkpoint source is recoverable even after its branch
@@ -97,7 +101,7 @@ from source rollback.
 
 ## Next work
 
-1. Confirm the integration and cleanup PRs are reflected on main and remove superseded branches.
+1. Read the integration ledger and verify the latest main revision before continuing.
 2. Qualify real accounts only during an explicitly requested call with renewed credentials.
 3. Implement typed code tools, approved worktrees and verification before run --once.
 4. Add the Copilot SDK adapter with explicit GitHub authentication.
