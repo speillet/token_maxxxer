@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from nightshift.models import Task
+from token_maxxxer.models import Task
 
 
 @pytest.fixture
@@ -22,6 +22,7 @@ def config_path(tmp_path: Path) -> Path:
     path = tmp_path / "config.yaml"
     path.write_text(
         "timezone: Europe/Paris\n"
+        "provider:\n  name: claude\n  model: fixture-model\n"
         "repositories:\n  allowed: [.]\n"
         "schedule:\n  windows:\n"
         "    - days: [mon]\n      start: '22:00'\n      end: '07:00'\n",

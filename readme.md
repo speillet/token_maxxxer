@@ -1,249 +1,188 @@
-# Claude Nightshift
+# token_maxxxer
 
-> Orchestrateur personnel de tâches de développement avec LangGraph, LangChain et Claude Code, sur macOS et Linux.
+Orchestrateur local de tâches de développement, avec un fournisseur IA
+configurable : **Claude via clé API**, **OpenAI via clé API**, puis
+**GitHub Copilot via son SDK et un token GitHub autorisé**.
 
-**Statut : premier socle Python disponible, exécution Claude à développer.**
-Configuration, modèles, import SQLite, liste, diagnostic et simulation sont
-implémentés. Le reste de ce README décrit la cible. Le jalon 0 attend encore sa
-validation sur un compte réel ; aucun appel d'inférence n'est activé.
-Plan : [roadmap.md](roadmap.md). Avancement et retours arrière : [checkpoint.md](checkpoint.md).
+Le paquet Python, la commande et le dépôt portent le nom `token_maxxxer`.
+Python 3.11+, macOS et Linux. [Roadmap](roadmap.md) · [Checkpoints et rollbacks](checkpoint.md).
 
-## Essayer le socle
+## État actuel
 
-Prérequis : Python 3.11 ou supérieur, Git et [uv](https://docs.astral.sh/uv/).
-Les dépendances sont verrouillées dans `uv.lock`.
+| Fonction | État |
+| --- | --- |
+| Configuration Pydantic, modèles, import YAML et file SQLite | Disponible |
+| Diagnostic, liste et simulation sans requête API | Disponible |
+| Génération de texte Claude / OpenAI par API officielle | Disponible avec `query`, testée sur HTTP simulé |
+| Stockage privé et résolution des références de credentials | Disponible |
+| GitHub Copilot | Interface prévue ; adaptateur SDK à implémenter |
+| Agent modifiant du code, worktrees, tests métier | À implémenter |
+| Workflow LangGraph durable, planning et services | À implémenter |
+
+`query` produit une réponse texte. Elle ne lit pas le dépôt, n'applique pas de
+patch, ne lance pas de commande et ne marque aucune tâche comme réussie.
+Les tests ne font aucun appel facturé et ne prouvent pas l'accès d'un compte réel.
+
+## Installation et premiers contrôles
 
 ```bash
 uv sync --locked
-uv run nightshift --config examples/nightshift.yaml doctor
-uv run nightshift --config examples/nightshift.yaml tasks import examples/tasks.yaml
-uv run nightshift --config examples/nightshift.yaml tasks list
-uv run nightshift --config examples/nightshift.yaml run --dry-run
+uv run token_maxxxer --help
+uv run token_maxxxer --config examples/token_maxxxer.yaml doctor
+uv run token_maxxxer --config examples/token_maxxxer.yaml tasks import examples/tasks.yaml
+uv run token_maxxxer --config examples/token_maxxxer.yaml tasks list
+uv run token_maxxxer --config examples/token_maxxxer.yaml run --dry-run
 ```
 
-Les exemples autorisent la racine de ce dépôt et ajoutent une tâche de
-démonstration à `var/nightshift.sqlite`. Ils ne modifient aucun fichier du dépôt
-et n'exécutent ni la tâche ni ses commandes de vérification. Adapter les dépôts,
-consignes et tests avant utilisation réelle. Un chemin relatif est résolu depuis
-son fichier YAML, y compris les chemins de stockage par défaut.
+L'exemple autorise la racine de ce dépôt et utilise `var/token_maxxxer.sqlite`.
+Adapter les chemins et tâches avant une utilisation réelle. Les chemins relatifs
+sont résolus depuis leur fichier YAML ; sans `--config`, le fichier attendu est
+`./token_maxxxer.yaml`. Les fichiers privés de configuration sont ignorés par Git.
 
-`doctor` contrôle Git, le CLI et ses métadonnées d'authentification, l'environnement,
-la configuration et les emplacements. Il n'effectue aucune inférence et n'ouvre
-aucun flux de connexion. Il échoue si le CLI manque ou si la connexion abonnement
-n'est pas confirmée. Les crédits supplémentaires, settings, hooks et MCP restent
-à vérifier avant le jalon 2 ; voir le [contrat CLI](docs/claude-cli-contract.md).
+`doctor` vérifie Git, les racines autorisées, les emplacements, le fournisseur et
+la présence d'une clé ou référence. Il ne récupère pas le secret du Trousseau,
+ne contacte aucune API et ne valide pas la clé auprès du fournisseur. Claude
+Code et un abonnement Claude ne sont pas nécessaires au parcours API.
 
-`tasks list`, `doctor` et `run --dry-run` ne créent pas de base et ne modifient pas
-la file. La simulation montre la prochaine tâche `pending`, sans l'acquérir ;
-elle ne calcule pas encore les créneaux et n'autorise aucune exécution réelle.
-Une priorité numérique supérieure passe d'abord ; à égalité, l'arrivée départage.
-Un import répété ne crée pas de doublon. Réutiliser un identifiant avec une autre
-définition refuse le lot entier. Les racines de dépôts doivent être autorisées
-explicitement dans `repositories.allowed` ; les sous-répertoires ne le sont pas
-implicitement. N'importer que des fichiers de tâches de confiance.
+## Choisir le fournisseur
 
-Chaque commande accepte `--json` après son nom. Codes de sortie : `0` pour une
-opération réussie, `1` pour un diagnostic en échec, `2` pour une entrée ou une
-base invalide. Sans `--config`, le chemin attendu est `./nightshift.yaml`.
-Le YAML rejette les champs inconnus, clés dupliquées, alias et documents > 1 Mio.
+La configuration complète est dans [examples/token_maxxxer.yaml](examples/token_maxxxer.yaml).
+Le modèle est obligatoire : aucun modèle ni fournisseur n'est substitué automatiquement.
 
-Les commandes `run --once`, `status`, `pause`, `resume`, `report` et `service`
-seront livrées aux jalons suivants. LangGraph, LangChain Core et le checkpointer
-SQLite sont installés ; aucun workflow d'exécution n'est encore raccordé.
-Contrôles de développement : [CONTRIBUTING.md](CONTRIBUTING.md).
+```yaml
+provider:
+  name: claude
+  model: claude-sonnet-5-5
+  max_output_tokens: 4096
+  timeout_seconds: 60
 
-## Objectif
+authentication:
+  mode: api_key
+  env_file: ../.env
+```
 
-Faire avancer des projets de code en arrière-plan pendant des créneaux configurables, en utilisant l'allocation disponible d'un abonnement Claude Pro. Le « token maxing » désigne ici la recherche du maximum de travail utile dans cette allocation : chaque exécution répond à une tâche identifiée et produit un résultat vérifiable.
+Pour OpenAI, remplacer le bloc fournisseur par :
 
-L'application sélectionne une tâche, prépare un espace Git, appelle Claude Code, contrôle le résultat puis poursuit la file. Elle attend lorsque le créneau est fermé ou qu'une limite d'utilisation est signalée. Une file vide termine le travail : aucune tâche artificielle n'est créée pour consommer des tokens.
+```yaml
+provider:
+  name: openai
+  model: gpt-5.4-mini
+  max_output_tokens: 4096
+  timeout_seconds: 60
+```
 
-## Contexte et choix structurants
+Les modèles d'exemple sont configurables ; vérifier leur accès dans le compte.
+Une clé API utilise le compte API correspondant. Le plafond de sortie borne les
+tokens demandés et ne garantit pas un montant exact de facturation.
+Les adaptateurs n'effectuent aucune relance automatique et n'appellent pas un
+second fournisseur en cas d'erreur.
 
-- Utilisateur unique, exécution locale sous macOS ou Linux.
-- Abonnement Claude Pro annoncé autour de 20 € ; prix et conditions à vérifier dans le compte.
-- Python 3.11 ou supérieur comme cible initiale.
-- LangGraph porte le workflow et ses checkpoints ; LangChain Core fournit les outils typés et les modèles de messages si nécessaires.
-- Le CLI officiel Claude Code exécute les tâches via `claude -p` avec l'authentification de l'utilisateur.
-- Pas d'appel `ChatAnthropic` dans le chemin abonnement : cet adaptateur utiliserait l'API et une facturation distincte.
-- Une seule tâche active sur une machine dans le MVP. Mac et Linux sont des cibles alternatives, pas un cluster distribué.
+## Credentials sans secret dans Git
 
-## Authentification et limites
+Deux sources sont prises en charge pour le fournisseur sélectionné :
 
-La documentation consultée le 2 novembre 2026 indique que `claude -p` peut encore consommer l'allocation de l'abonnement. Ce comportement et les conditions d'utilisation constituent une dépendance externe à revalider avant l'implémentation et lors des mises à jour.
+1. Une variable d'environnement du processus : `ANTHROPIC_API_KEY` pour Claude,
+   `OPENAI_API_KEY` pour OpenAI.
+2. Une référence au gestionnaire de credentials, dans l'environnement ou dans
+   le `.env` local. Les références d'environnement passent avant celles du fichier.
 
-Le programme utilisera l'authentification officielle du CLI. Il ne lira ni ne réutilisera les jetons OAuth pour effectuer ses propres appels HTTP. Il vérifiera le mode d'authentification et refusera de démarrer en mode abonnement si une configuration API ou fournisseur tiers détectée contredit ce mode. Une variable `ANTHROPIC_API_KEY` peut notamment prendre priorité sur la connexion à l'abonnement.
+```dotenv
+TOKEN_MAXXXER_CLAUDE_CREDENTIAL_REF=keychain://token_maxxxer.claude.api/token_maxxxer
+# TOKEN_MAXXXER_OPENAI_CREDENTIAL_REF=keychain://token_maxxxer.openai.api/token_maxxxer
+```
 
-Les crédits supplémentaires payants doivent être désactivés dans le compte pour viser un fonctionnement limité à l'allocation incluse. L'absence de clé API ne suffit pas à garantir l'absence de toute facturation supplémentaire.
+Les services et comptes sont ceux des entrées du Trousseau macOS. Une référence
+existante reste utilisable, même si son service conserve un ancien identifiant.
+`query` récupère uniquement le credential du fournisseur sélectionné, au moment
+de la requête. Sur Linux, fournir la clé dans l'environnement du processus ;
+les références au Trousseau macOS ne sont pas disponibles.
 
-Le service ne promet pas de connaître un pourcentage exact de quota restant. Le MVP réagit aux erreurs documentées et signaux observables du CLI. Si une date de réinitialisation fiable est disponible, elle est enregistrée ; sinon, une attente progressive et bornée s'applique. Les limites hebdomadaires et l'usage interactif partagé restent pris en compte dans les limites du signal disponible.
+Le lecteur de `.env` accepte uniquement les références connues, sans exécuter
+le fichier, interpoler des valeurs ou modifier l'environnement global. Il refuse
+les clés API en texte clair dans ce fichier. Conserver les permissions `0600`.
+Seul [.env.example](.env.example), sans secret, est versionné. Une rotation de clé
+se fait dans le gestionnaire de credentials ou l'environnement, jamais dans Git.
 
-## Périmètre du MVP
+## Envoyer une consigne par API
 
-| Fonction | Comportement attendu |
-| --- | --- |
-| File de travail | Tâches explicites importées depuis YAML et persistées en SQLite |
-| Priorités | Priorité numérique, puis ordre d'arrivée ; aucune dépendance entre tâches au départ |
-| Planning | Créneaux par jour en fuseau IANA, y compris passage de minuit |
-| Exécution | CLI Claude Code, sorties structurées, permissions configurées, timeout |
-| Git | Un worktree et une branche par tâche, base choisie explicitement |
-| Vérification | Commandes de test configurées par l'utilisateur et contrôle des critères attendus |
-| Reprise | Checkpoints LangGraph et journal des tentatives |
-| Limites | Pause sur quota, reprise contrôlée, aucune boucle de relance rapide |
-| Rapport | Résumé local : tâche, branche, diff, tests, erreurs, temps, usage disponible |
-| Service | `launchd` sur macOS, `systemd --user` sur Linux |
+Après avoir configuré une clé et un modèle, créer un fichier UTF-8 contenant la
+consigne, puis lancer explicitement :
 
-La découverte autonome de tâches, l'interface web, les PR automatiques et la concurrence entre agents sont reportées après le MVP.
+```bash
+uv run token_maxxxer --config examples/token_maxxxer.yaml query --prompt-file consigne.txt
+```
+
+La commande envoie la consigne au fournisseur configuré ; elle peut donc consommer
+son allocation API. `--prompt-file -` lit stdin, et `--json` restitue le résultat
+normalisé, les tokens observés et les diagnostics expurgés. Les valeurs d'usage
+absentes restent inconnues ; elles ne deviennent pas zéro. Les réponses tronquées,
+refusées ou en erreur ne sont pas des réussites.
+La consigne conserve son indentation ; au-delà de 1 048 576 caractères, elle est
+refusée avant résolution du credential et avant tout envoi, sans troncature silencieuse.
+
+Pour vérifier la configuration sans requête réseau, utiliser `doctor` ou
+`run --dry-run`. Ces commandes ainsi que `tasks list` ne créent pas de base et ne
+modifient ni la file ni les dépôts.
+
+## File de tâches
+
+Les tâches doivent être explicites et provenir d'un YAML de confiance. Chaque
+tâche indique un identifiant stable, une racine Git autorisée, une base, une
+consigne, des critères d'acceptation et des commandes de vérification sous forme
+de listes d'arguments. Voir [examples/tasks.yaml](examples/tasks.yaml).
+
+Une priorité supérieure passe d'abord ; à égalité, l'ordre d'arrivée s'applique.
+Un réimport identique ne duplique pas la tâche. Réutiliser un identifiant avec
+une autre définition refuse le lot entier. Les sous-répertoires ne sont pas
+implicitement autorisés par l'autorisation d'une racine.
+
+Les commandes `run --once`, pause/reprise, rapports et services arrivent aux
+jalons suivants. L'exécution future préparera un worktree par tâche, donnera aux
+fournisseurs des outils explicitement autorisés et n'acceptera une réussite
+qu'après vérification. Aucune tâche artificielle n'est créée pour consommer des tokens.
 
 ## Architecture
 
-| Module envisagé | Responsabilité |
-| --- | --- |
-| `config.py` | Validation Pydantic de la configuration et des chemins |
-| `scheduler.py` | Calcul des créneaux, délais et prochaines échéances |
-| `queue.py` | Import idempotent, acquisition et changement d'état des tâches |
-| `graph.py` | Graphe LangGraph et routage des résultats |
-| `tools.py` | Outils LangChain typés pour les opérations approuvées |
-| `claude_runner.py` | Lancement du CLI, arrêt du groupe de processus, normalisation des sorties |
-| `git_workspace.py` | Création, contrôle et conservation des worktrees |
-| `verification.py` | Exécution des vérifications explicites avec délai maximal |
-| `storage.py` | SQLite applicatif, migrations et journal durable |
-| `reporting.py` | Rapports Markdown et journaux JSONL |
-| `cli.py` | Commandes utilisateur et gestion du service |
-
-LangGraph pilote un workflow déterministe ; un second LLM superviseur n'est pas nécessaire pour distribuer les tâches. L'agent de développement reste Claude Code.
-
-```mermaid
-flowchart TD
-    A[Contrôle du créneau] --> B{Exécution autorisée ?}
-    B -->|Non| W[Attente persistée]
-    W --> A
-    B -->|Oui| C[Sélection et worktree]
-    C --> D[Claude Code]
-    D --> E{Résultat}
-    E -->|Limite| W
-    E -->|Résultat disponible| F[Vérifications et rapport]
-    E -->|Erreur| G[Classement et reprise bornée]
-    G --> A
-    F --> A
+```text
+src/token_maxxxer/
+├── config.py, models.py       # configuration et données validées
+├── credentials.py            # références privées, résolution à la demande
+├── providers.py              # Provider, Claude Messages et OpenAI Responses
+├── queue.py, storage.py       # import atomique et SQLite versionné
+├── cli.py, doctor.py          # commandes utilisateur et diagnostic sans réseau
+└── process.py, redaction.py   # processus bornés et diagnostics expurgés
 ```
 
-Les checkpoints sauvegardent l'état du graphe, pas un processus externe. Avant toute reprise d'un nœud à effets de bord, le système rapproche `task_id`, `attempt_id`, worktree et journal d'exécution. Un processus au résultat inconnu passe en `needs_review` plutôt que de relancer aveuglément une modification.
+LangGraph et LangChain Core sont installés pour le futur workflow déterministe.
+Les checkpoints du graphe utiliseront une base distincte de la file applicative.
+Le prototype Claude Code de la PR #2 reste testé comme intégration historique,
+mais le parcours principal utilise les API. Son contrat est archivé dans
+[docs/archive/claude-cli-contract.md](docs/archive/claude-cli-contract.md).
 
-## Modèle de données proposé
+Copilot utilisera le même port `Provider`, avec un adaptateur propre à son SDK
+et à son authentification GitHub. `provider.name: copilot` est reconnu mais
+refusé à l'exécution tant que l'adaptateur n'est pas livré ; aucune URL privée
+Copilot ni récupération implicite des credentials de `gh` n'est utilisée.
+Contrats et sources officielles : [docs/providers.md](docs/providers.md).
 
-- **Task** : identifiant stable, dépôt autorisé, référence Git de base, consigne, priorité, critères d'acceptation, commandes de vérification.
-- **Attempt** : identifiant unique, tâche, dates, statut, worktree, branche, éventuel identifiant de session Claude, résultat normalisé, erreur, prochaine tentative.
-- **ExecutionState** : identifiants de tâche et tentative, phase du graphe, échéance du créneau, compteur de reprises, motif de pause.
-- **UsageObservation** : heure, source, tokens ou coût indicatif éventuellement fournis, limite signalée, réinitialisation connue ou inconnue.
-
-États de tâche : `pending`, `running`, `waiting_limit`, `paused_schedule`, `needs_review`, `succeeded`, `failed`, `cancelled`. Une réussite annoncée par le modèle ne suffit pas : le statut dépend des vérifications prévues. Si une validation humaine reste nécessaire, utiliser `needs_review`.
-
-## Configuration
-
-Schéma validé par le socle ; l'application du planning et des politiques
-d'exécution arrive aux jalons suivants. Exemple complet :
-[`examples/nightshift.yaml`](examples/nightshift.yaml).
-
-```yaml
-timezone: Europe/Paris
-repositories:
-  allowed: [/chemin/vers/geo-distance]
-schedule:
-  windows:
-    - days: [mon, tue, wed, thu, fri, sat, sun]
-      start: '22:00'
-      end: '07:00'
-  stop_policy: strict
-  shutdown_grace_seconds: 10
-execution:
-  concurrency: 1
-  task_timeout_minutes: 30
-  max_attempts_per_task: 3
-  max_active_minutes_per_window: 240
-  retry_backoff_seconds: [300, 900, 1800]
-authentication:
-  mode: claude_subscription
-  reject_api_configuration: true
-git:
-  worktree_per_task: true
-  auto_merge: false
-storage:
-  database: ./var/nightshift.sqlite
-  checkpoints: ./var/checkpoints.sqlite
-  reports: ./var/reports
-```
-
-Les jours désignent le jour de début du créneau : lundi 22 h–7 h finit mardi. Les fenêtres sont semi-ouvertes : début inclus, fin exclue. Les chevauchements sont fusionnés. Les timestamps persistés sont en UTC ; les créneaux suivent `Europe/Paris` et ses changements d'heure.
-
-En mode `strict`, l'arrêt est demandé avant la fermeture pour absorber le délai de grâce ; à l'échéance, le groupe de processus est arrêté. Le travail partiel reste dans son worktree. Un arrêt local ne garantit pas l'annulation instantanée d'une requête déjà envoyée au fournisseur.
-
-Le plafond de minutes limite l'usage nocturne mais ne représente pas un pourcentage garanti du quota. Le mode de réserve exacte attend une source de mesure officiellement exploitable.
-
-## Exemple de tâche
-
-```yaml
-tasks:
-  - id: add-distance-validation
-    repository: /chemin/vers/geo-distance
-    base_ref: main
-    priority: 10
-    prompt: >-
-      Ajouter la validation des coordonnées géographiques dans la fonction
-      de calcul de distance. Préserver le comportement des entrées valides.
-    acceptance_criteria:
-      - Latitude hors de [-90, 90] rejetée avec un message explicite.
-      - Longitude hors de [-180, 180] rejetée avec un message explicite.
-      - Tests de limites et de non-régression présents.
-    verification_commands:
-      - [python, -m, pytest, tests/test_distance.py, -q]
-```
-
-Les commandes de vérification proviennent de la configuration de confiance, sont exécutées comme listes d'arguments et ont leur propre timeout. Les chemins de dépôts sont explicitement autorisés. Les tâches ajoutées par une source externe ne deviennent pas exécutables sans validation.
-
-## Parcours utilisateur cible
-
-Les commandes suivantes décrivent le parcours MVP ; seules `doctor`, l'import,
-la liste et `run --dry-run` sont actuellement disponibles :
+## Développement et migration
 
 ```bash
-nightshift doctor
-nightshift tasks import tasks.yaml
-nightshift tasks list
-nightshift run --once
-nightshift run --dry-run
-nightshift service install
-nightshift status
-nightshift pause
-nightshift resume
-nightshift report --latest
+uv run ruff format --check
+uv run ruff check
+uv run mypy
+uv run pytest -q
+uv build --no-sources
 ```
 
-`doctor` contrôlera Python, Git, le CLI Claude, sa version, l'authentification, les répertoires et la configuration. `--dry-run` devra simuler les décisions sans appel Claude ni modification du dépôt. Le service utilisera des chemins absolus et retrouvera l'authentification de l'utilisateur dans son environnement non interactif.
+Les tests utilisent des transports HTTP simulés, un faux CLI et des dépôts
+temporaires. La CI couvre Python 3.11/3.13 sur macOS et Linux.
+Conventions : [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Permissions et résultats
-
-Le worktree sépare les modifications Git ; il ne constitue pas une sandbox de sécurité. Les outils Claude autorisés doivent être explicites, sans désactivation globale des permissions. Les hooks, configurations MCP et instructions présents dans les dépôts doivent être examinés avant activation du mode non interactif.
-
-Les branches et diffs restent locaux dans le MVP. Les rapports identifient les fichiers modifiés, les tests exécutés et leur code de sortie. Les logs excluent les secrets et les informations d'authentification. Le nettoyage conserve les worktrees contenant un travail non validé.
-
-## Mesures de réussite
-
-- Tâches terminées et validées par créneau.
-- Taux de réussite, reprises et interventions manuelles.
-- Temps actif, attente quota et attente planning.
-- Consommation mesurée uniquement si fournie ; valeur inconnue sinon.
-- Aucun double lancement après redémarrage.
-- Aucune activité locale lancée hors créneau.
-
-## Références
-
-Sources consultées pendant le cadrage du 2 novembre 2026 ; à revalider au jalon 0.
-
-- [Claude Code en mode programmatique](https://code.claude.com/docs/en/headless)
-- [Référence du CLI Claude Code](https://code.claude.com/docs/en/cli-reference)
-- [Agent SDK et abonnement Claude](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
-- [Priorité des clés API](https://support.claude.com/en/articles/12304248-manage-api-key-environment-variables-in-claude-code)
-- [Abonnement et limites Claude Code](https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-max-or-ultra-plan)
-- [Persistance LangGraph](https://docs.langchain.com/oss/python/langgraph/persistence)
-- [Exécution durable LangGraph](https://docs.langchain.com/oss/python/langgraph/durable-execution)
+Depuis le prototype, mettre à jour les imports, la commande et la configuration
+vers `token_maxxxer`, ajouter `provider` et passer `authentication.mode` à
+`api_key`. Les variables de référence portent désormais le préfixe
+`TOKEN_MAXXXER_`. Aucune donnée locale ni entrée de Trousseau n'est renommée ou
+supprimée automatiquement. Pour conserver une ancienne base, garder son chemin
+explicite dans `storage.database` ; l'identifiant et le schéma SQLite restent
+compatibles. Sauvegarder les données séparément avant tout changement.

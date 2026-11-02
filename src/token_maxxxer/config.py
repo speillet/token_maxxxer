@@ -6,8 +6,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, StringConstraints, field_validator, model_validator
 
-from nightshift.models import Model, resolve_path
-from nightshift.yaml_io import load_yaml
+from token_maxxxer.models import Model, Text, resolve_path
+from token_maxxxer.yaml_io import load_yaml
 
 Day = Literal["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 ClockTime = Annotated[str, StringConstraints(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")]
@@ -70,8 +70,17 @@ class ExecutionConfig(Model):
 
 
 class AuthenticationConfig(Model):
-    mode: Literal["claude_subscription"] = "claude_subscription"
-    reject_api_configuration: Literal[True] = True
+    mode: Literal["api_key"] = "api_key"
+    env_file: Path = Path(".env")
+
+    _resolve_env_file = field_validator("env_file")(resolve_path)
+
+
+class ProviderConfig(Model):
+    name: Literal["claude", "openai", "copilot"] = "claude"
+    model: Text
+    max_output_tokens: Annotated[int, Field(strict=True, ge=1, le=32768)] = 4096
+    timeout_seconds: Annotated[float, Field(gt=0, le=3600)] = 60
 
 
 class GitConfig(Model):
@@ -97,7 +106,7 @@ class RepositoriesConfig(Model):
 
 
 class StorageConfig(Model):
-    database: Path = Path("./var/nightshift.sqlite")
+    database: Path = Path("./var/token_maxxxer.sqlite")
     checkpoints: Path = Path("./var/checkpoints.sqlite")
     reports: Path = Path("./var/reports")
 
@@ -133,8 +142,9 @@ class Config(Model):
     timezone: str = "Europe/Paris"
     schedule: ScheduleConfig
     repositories: RepositoriesConfig
+    provider: ProviderConfig
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig)
-    authentication: AuthenticationConfig = Field(default_factory=AuthenticationConfig)
+    authentication: AuthenticationConfig
     git: GitConfig = Field(default_factory=GitConfig)
     storage: StorageConfig
 
@@ -143,7 +153,7 @@ class Config(Model):
     def storage_defaults(cls, value: object) -> object:
         # Validate the default through the nested model so it receives source-path context.
         if isinstance(value, dict):
-            return {"storage": {}, **value}
+            return {"storage": {}, "authentication": {}, **value}
         return value
 
     @field_validator("timezone")

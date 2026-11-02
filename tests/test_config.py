@@ -3,12 +3,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from nightshift.config import Config, load_config
-from nightshift.yaml_io import DocumentError, load_yaml
+from token_maxxxer.config import Config, load_config
+from token_maxxxer.yaml_io import DocumentError, load_yaml
 
 
 def configuration(tmp_path: Path) -> dict:
     return {
+        "provider": {"name": "claude", "model": "fixture-model"},
         "repositories": {"allowed": [str(tmp_path)]},
         "schedule": {"windows": [{"days": ["mon"], "start": "22:00", "end": "07:00"}]},
     }
@@ -18,7 +19,8 @@ def test_paths_are_relative_to_source_even_for_defaults(config_path: Path, monke
     monkeypatch.chdir(config_path.parent.parent)
     config = load_config(config_path)
     assert config.repositories.allowed == (config_path.parent,)
-    assert config.storage.database == config_path.parent / "var/nightshift.sqlite"
+    assert config.storage.database == config_path.parent / "var/token_maxxxer.sqlite"
+    assert config.authentication.env_file == config_path.parent / ".env"
     assert config.schedule.windows[0].duration_seconds() == 9 * 3600
     assert not (config_path.parent / "var").exists()
 
@@ -33,7 +35,15 @@ def test_paths_are_relative_to_source_even_for_defaults(config_path: Path, monke
         ("execution", {"retry_backoff_seconds": []}, "retry_backoff_seconds"),
         ("execution", {"task_timeout_minutes": True}, "task_timeout_minutes"),
         ("git", {"auto_merge": True}, "auto_merge"),
-        ("authentication", {"reject_api_configuration": False}, "reject_api_configuration"),
+        ("authentication", {"mode": "claude_subscription"}, "mode"),
+        ("provider", {"name": "unknown", "model": "fixture"}, "name"),
+        ("provider", {"name": "claude"}, "model"),
+        ("provider", {"name": "openai", "model": " "}, "model"),
+        (
+            "provider",
+            {"name": "claude", "model": "fixture", "max_output_tokens": 0},
+            "max_output_tokens",
+        ),
         ("storage", {"database": "same", "checkpoints": "same"}, "distinctes"),
         ("unexpected", "secret-value", "Extra inputs"),
     ],

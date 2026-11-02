@@ -19,7 +19,7 @@ credentials*.json
 /var/
 /.worktrees/
 /worktrees/
-/nightshift.yaml
+/token_maxxxer.yaml
 /tasks.yaml
 *.sqlite
 *.sqlite-*
