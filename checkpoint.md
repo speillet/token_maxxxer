@@ -21,7 +21,8 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | --- | --- | --- | --- |
 | CP-000 | `ad0992b` | README et roadmap d'origine | Arbre Git propre avant implémentation |
 | CP-001 | Commit `docs: record CLI contract and implementation checkpoints` | Contrat externe et protocole de suivi | Sources officielles relues, limites locales consignées |
-| CP-002 | Commit `feat(config): add validated Python foundation and domain models` | Packaging verrouillé, YAML sûr, configuration et modèles | Ruff, mypy et tests ciblés configuration/modèles |
+| CP-002 | `26469a7` | Packaging verrouillé, YAML sûr, configuration et modèles | 31 tests ciblés configuration/modèles, Ruff et mypy |
+| CP-003 | Commit `feat(queue): persist trusted tasks with atomic idempotent imports` | Migration SQLite initiale, import atomique, ordre priorité/arrivée et lecture seule | 9 tests de file : concurrence d'import, rollback de lot, autorisation et conservation des états |
 
 Chaque livraison ajoute ici son périmètre, ses vérifications et le nom du commit.
 Pour retrouver son SHA : `git log --oneline --all`. Les commits portent une seule
