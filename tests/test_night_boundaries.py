@@ -114,6 +114,17 @@ def test_positional_credential_words_are_allowed(repository, arguments) -> None:
     assert plan.verification_commands == (arguments,)
 
 
+def test_review_plans_reject_verification_commands(repository) -> None:
+    with pytest.raises(ValueError, match="review mode"):
+        NightPlan(
+            repository=repository,
+            skill="builtin:code-review",
+            mode="review",
+            provider=ProviderConfig(model="fixture"),
+            verification_commands=(("pytest",),),
+        )
+
+
 def test_public_session_serialization_redacts_defensively(repository) -> None:
     plan = NightPlan(
         repository=repository,

@@ -261,8 +261,6 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
         check = _input("Optional verification command (no shell operators)")
         if check:
             verification.append(shlex.split(check))
-    if len(verification) > 5 or any("\x00" in arg for command in verification for arg in command):
-        raise ValueError("use at most five verification commands without NUL characters")
     plan = NightPlan(
         repository=repository,
         skill=skill.id,
@@ -276,8 +274,6 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
     )
     if state.is_relative_to(repository):
         raise ValueError("--state-dir must be outside the selected repository")
-    if mode == "review" and verification:
-        raise ValueError("review mode does not execute verification commands")
     json_output = getattr(arguments, "json", False)
     if getattr(arguments, "dry_run", False):
         print(

@@ -12,7 +12,7 @@ from types import FrameType
 from typing import Annotated, Literal
 from uuid import uuid4
 
-from pydantic import ConfigDict, Field, SecretStr, field_validator
+from pydantic import ConfigDict, Field, SecretStr, field_validator, model_validator
 
 from token_maxxxer.config import ProviderConfig
 from token_maxxxer.file_tools import FileTools
@@ -73,6 +73,12 @@ class NightPlan(Model):
         if len(commands) > 5:
             raise ValueError("at most five verification commands are allowed")
         return commands
+
+    @model_validator(mode="after")
+    def review_runs_no_commands(self) -> "NightPlan":
+        if self.mode == "review" and self.verification_commands:
+            raise ValueError("review mode does not execute verification commands")
+        return self
 
 
 class ReadFile(Model):
@@ -304,8 +310,6 @@ def run_night(
     state = state.expanduser().resolve()
     if state.is_relative_to(repository):
         raise ValueError("session storage must be outside the selected repository")
-    if plan.mode == "review" and plan.verification_commands:
-        raise ValueError("review mode does not execute verification commands")
     started = clock()
     deadline = started + plan.hours * 3600
     identifier = utc_now().strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
