@@ -117,6 +117,8 @@ son allocation API. `--prompt-file -` lit stdin, et `--json` restitue le résult
 normalisé, les tokens observés et les diagnostics expurgés. Les valeurs d'usage
 absentes restent inconnues ; elles ne deviennent pas zéro. Les réponses tronquées,
 refusées ou en erreur ne sont pas des réussites.
+La consigne conserve son indentation ; au-delà de 1 048 576 caractères, elle est
+refusée avant résolution du credential et avant tout envoi, sans troncature silencieuse.
 
 Pour vérifier la configuration sans requête réseau, utiliser `doctor` ou
 `run --dry-run`. Ces commandes ainsi que `tasks list` ne créent pas de base et ne
@@ -174,7 +176,7 @@ uv build --no-sources
 ```
 
 Les tests utilisent des transports HTTP simulés, un faux CLI et des dépôts
- temporaires. La CI couvre Python 3.11/3.13 sur macOS et Linux.
+temporaires. La CI couvre Python 3.11/3.13 sur macOS et Linux.
 Conventions : [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Depuis le prototype, mettre à jour les imports, la commande et la configuration

@@ -50,6 +50,7 @@ arrivent au jalon 3. Aucune fixture synthétique ne vaut preuve d'un appel réel
 | CP-018 | Commit `test(api): validate provider selection and credential masking` | Bornes de configuration fournisseur, chemin des références et masquage Claude/OpenAI/GitHub | 201 tests sur la suite complète |
 | CP-019 | Commit `docs: align roadmap and provider contracts with API-based execution` | README et roadmap API, contrat multi-fournisseurs et ancien contrat CLI archivé | Documentation des limites et des commandes réellement disponibles |
 | CP-020 | Commit `fix(api): reject refused and incomplete output items` | Constat P2 des revues : sortie OpenAI globalement complète mais message refusé/incomplet ; outils non raccordés refusés | Régressions sur refus, états des messages, raisonnement incomplet et appels d'outil |
+| CP-021 | Commit `fix(cli): reject oversized prompts before any API access` | Constat P2 : ne pas envoyer une consigne tronquée, préserver l'indentation et refuser une entrée vide | Fichier et stdin trop longs refusés avant fournisseur/credential |
 
 ## Livraison du socle
 

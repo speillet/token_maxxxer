@@ -1,3 +1,4 @@
+import io
 import json
 import subprocess
 
@@ -7,6 +8,7 @@ from pydantic import SecretStr
 
 from token_maxxxer.cli import main
 from token_maxxxer.config import load_config
+from token_maxxxer.providers import MAX_PROMPT_CHARACTERS
 from token_maxxxer.runner_result import RunnerResult
 from token_maxxxer.storage import TaskStore
 
@@ -127,3 +129,23 @@ def test_dry_run_never_creates_a_provider_or_resolves_credentials(
     monkeypatch.setattr("token_maxxxer.cli.resolve_credential", forbidden)
     assert main(["--config", str(config_path), "run", "--dry-run", "--json"]) == 0
     assert json.loads(capsys.readouterr().out)["provider"]["name"] == "claude"
+
+
+@pytest.mark.parametrize("stdin", [False, True])
+def test_oversized_prompt_is_rejected_before_provider_or_credential_access(
+    config_path, monkeypatch, capsys, stdin
+) -> None:
+    text = "\n" + "a" * MAX_PROMPT_CHARACTERS + " instruction finale"
+    prompt_path = config_path.parent / "prompt.txt"
+    prompt_path.write_text(text)
+    if stdin:
+        monkeypatch.setattr("sys.stdin", io.StringIO(text))
+
+    def forbidden(*args):
+        raise AssertionError("no provider or credential resolution allowed")
+
+    monkeypatch.setattr("token_maxxxer.cli.create_provider", forbidden)
+    monkeypatch.setattr("token_maxxxer.cli.resolve_credential", forbidden)
+    source = "-" if stdin else str(prompt_path)
+    assert main(["--config", str(config_path), "query", "--prompt-file", source]) == 2
+    assert "aucun envoi" in capsys.readouterr().err

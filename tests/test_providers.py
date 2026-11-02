@@ -2,7 +2,7 @@ import json
 
 import httpx
 import pytest
-from pydantic import SecretStr
+from pydantic import SecretStr, ValidationError
 
 from token_maxxxer.config import ProviderConfig
 from token_maxxxer.providers import GenerationRequest, UnsupportedProviderError, create_provider
@@ -211,3 +211,14 @@ def test_claude_does_not_treat_an_unhandled_tool_call_as_completed_text() -> Non
         {"type": "tool_use", "id": "tool_fixture", "name": "unapproved", "input": {}}
     )
     assert generate("claude", lambda _: httpx.Response(200, json=data)).status == "invalid_output"
+
+
+def test_prompt_whitespace_and_indentation_are_preserved() -> None:
+    prompt = "\n    code indented\n"
+    request = GenerationRequest(prompt=prompt, settings=ProviderConfig(model="fixture-model"))
+    assert request.prompt == prompt
+
+
+def test_blank_prompt_is_rejected() -> None:
+    with pytest.raises(ValidationError):
+        GenerationRequest(prompt=" \n ", settings=ProviderConfig(model="fixture-model"))

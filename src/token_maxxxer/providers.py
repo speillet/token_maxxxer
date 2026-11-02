@@ -6,16 +6,25 @@ from typing import Protocol
 import anthropic
 import httpx
 import openai
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 
 from token_maxxxer.config import ProviderConfig
-from token_maxxxer.models import Model, Text, UsageObservation, utc_now
+from token_maxxxer.models import Model, UsageObservation, utc_now
 from token_maxxxer.runner_result import RunnerResult, RunnerStatus
+
+MAX_PROMPT_CHARACTERS = 1_048_576
 
 
 class GenerationRequest(Model):
-    prompt: Text = Field(repr=False, max_length=1_048_576)
+    prompt: str = Field(repr=False, min_length=1, max_length=MAX_PROMPT_CHARACTERS)
     settings: ProviderConfig
+
+    @field_validator("prompt")
+    @classmethod
+    def nonblank_prompt(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("la consigne ne peut pas être vide")
+        return value
 
 
 class Provider(Protocol):

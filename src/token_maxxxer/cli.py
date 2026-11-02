@@ -10,7 +10,7 @@ from pathlib import Path
 from token_maxxxer.config import load_config
 from token_maxxxer.credentials import resolve_credential
 from token_maxxxer.doctor import checks_as_dicts, diagnose
-from token_maxxxer.providers import GenerationRequest, create_provider
+from token_maxxxer.providers import MAX_PROMPT_CHARACTERS, GenerationRequest, create_provider
 from token_maxxxer.queue import import_document, preview_next
 from token_maxxxer.storage import TaskStore
 
@@ -51,10 +51,12 @@ def _execute(arguments: argparse.Namespace) -> int:
     store = TaskStore(config.storage.database)
     if arguments.command == "query":
         if str(arguments.prompt_file) == "-":
-            prompt = sys.stdin.read(1_048_577)
+            prompt = sys.stdin.read(MAX_PROMPT_CHARACTERS + 1)
         else:
             with arguments.prompt_file.open(encoding="utf-8") as stream:
-                prompt = stream.read(1_048_577)
+                prompt = stream.read(MAX_PROMPT_CHARACTERS + 1)
+        if len(prompt) > MAX_PROMPT_CHARACTERS:
+            raise ValueError("consigne trop volumineuse ; aucun envoi effectué")
         request = GenerationRequest(prompt=prompt, settings=config.provider)
         provider = create_provider(config.provider)
         credential = resolve_credential(config.provider, config.authentication.env_file)
