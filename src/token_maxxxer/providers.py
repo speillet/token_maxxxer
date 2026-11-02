@@ -69,7 +69,14 @@ class AnthropicProvider:
                     messages=[{"role": "user", "content": request.prompt}],
                 )
             text = "".join(block.text for block in message.content if block.type == "text")
-            complete = message.stop_reason in ("end_turn", "stop_sequence") and bool(text.strip())
+            complete = (
+                message.stop_reason in ("end_turn", "stop_sequence")
+                and bool(text.strip())
+                and all(
+                    block.type in ("text", "thinking", "redacted_thinking")
+                    for block in message.content
+                )
+            )
             return RunnerResult(
                 status="success" if complete else "invalid_output",
                 text=text,
@@ -116,6 +123,18 @@ class OpenAIProvider:
                 and response.incomplete_details is None
                 and bool(response.output_text.strip())
             )
+            for item in response.output:
+                if item.type == "message":
+                    complete = (
+                        complete
+                        and item.status == "completed"
+                        and all(block.type == "output_text" for block in item.content)
+                    )
+                elif item.type == "reasoning":
+                    complete = complete and item.status in (None, "completed")
+                else:
+                    # This text-only port does not execute or satisfy tool calls.
+                    complete = False
             usage = None
             if response.usage is not None:
                 usage = UsageObservation(

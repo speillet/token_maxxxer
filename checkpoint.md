@@ -49,6 +49,7 @@ arrivent au jalon 3. Aucune fixture synthétique ne vaut preuve d'un appel réel
 | CP-017 | `e923570` | Interface Provider, SDK API, query explicite, doctor sans CLI, références de credentials résolues à la demande | 194 tests, transports HTTP simulés, limites, erreurs sans relance et références privées |
 | CP-018 | Commit `test(api): validate provider selection and credential masking` | Bornes de configuration fournisseur, chemin des références et masquage Claude/OpenAI/GitHub | 201 tests sur la suite complète |
 | CP-019 | Commit `docs: align roadmap and provider contracts with API-based execution` | README et roadmap API, contrat multi-fournisseurs et ancien contrat CLI archivé | Documentation des limites et des commandes réellement disponibles |
+| CP-020 | Commit `fix(api): reject refused and incomplete output items` | Constat P2 des revues : sortie OpenAI globalement complète mais message refusé/incomplet ; outils non raccordés refusés | Régressions sur refus, états des messages, raisonnement incomplet et appels d'outil |
 
 ## Livraison du socle
 

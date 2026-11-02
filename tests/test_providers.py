@@ -177,3 +177,37 @@ def test_unknown_openai_usage_remains_unknown() -> None:
 def test_copilot_does_not_claim_implementation() -> None:
     with pytest.raises(UnsupportedProviderError, match="SDK officiel"):
         create_provider(ProviderConfig(name="copilot", model="fixture-model"))
+
+
+@pytest.mark.parametrize("case", ["refusal", "incomplete", "in_progress", "tool", "reasoning"])
+def test_openai_output_items_must_also_be_complete(case) -> None:
+    data = payload("openai")
+    if case == "refusal":
+        data["output"][0]["content"].append({"type": "refusal", "refusal": "Cannot comply."})
+    elif case in ("incomplete", "in_progress"):
+        data["output"][0]["status"] = case
+    elif case == "tool":
+        data["output"].append(
+            {
+                "id": "fc_fixture",
+                "type": "function_call",
+                "call_id": "call_fixture",
+                "name": "unapproved",
+                "arguments": "{}",
+                "status": "completed",
+            }
+        )
+    else:
+        data["output"].append(
+            {"id": "reasoning_fixture", "type": "reasoning", "summary": [], "status": "incomplete"}
+        )
+    result = generate("openai", lambda _: httpx.Response(200, json=data))
+    assert result.status == "invalid_output"
+
+
+def test_claude_does_not_treat_an_unhandled_tool_call_as_completed_text() -> None:
+    data = payload("claude")
+    data["content"].append(
+        {"type": "tool_use", "id": "tool_fixture", "name": "unapproved", "input": {}}
+    )
+    assert generate("claude", lambda _: httpx.Response(200, json=data)).status == "invalid_output"
