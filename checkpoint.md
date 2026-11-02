@@ -31,6 +31,7 @@ messages, examples, and test descriptions are maintained in English.
 | [#2](https://github.com/speillet/token_maxxxer/pull/2) | Retired subscription CLI prototype | Closed as superseded; shared work preserved through #3 |
 | [#3](https://github.com/speillet/token_maxxxer/pull/3) | Current name and Claude/OpenAI API providers | Retargeted to main and merged as `f7f5fb2`; four CI checks passed |
 | [#4](https://github.com/speillet/token_maxxxer/pull/4) | Remove dead code and unused dependencies; translate maintained content | Cleanup delivery; integration status and merge commit are available on the linked PR |
+| [#5](https://github.com/speillet/token_maxxxer/pull/5) | Interactive repository/skill selection and isolated overnight sessions | Feature delivery; current review/CI status is available on the linked PR |
 
 The cleanup branch starts at `fc0a7c3`. It removes the old CLI adapter, its
 subprocess transport and authentication constants, terminal wire parser, fake
@@ -81,7 +82,9 @@ their heads are confirmed to be ancestors of main; rollback commits remain reach
 | CP-026 | `d24eb13` | Typed file tools, signal/deadline cancellation, approved verification, per-repository locking, private session records and reports; original working trees remain untouched |
 | CP-027 | `18090c5` | No-argument picker, explicit night/repository/skill/session commands, confirmed API use, provider profile and network-free previews; 191 tests pass locally |
 | CP-028 | `165f3fe` | CLI usage, skill/tool scope, foreground limits, reports and review/rollback procedure |
-| CP-029 | `fix(night): enforce preview and credential boundaries` | Review corrections: reject credential arguments, sanitize records, exclude conventional credential files and linked skill roots, scope repository skill resources to the worktree, atomically replace reports, and defer Git status until confirmed execution |
+| CP-029 | `c8fa6d4` | Review corrections: reject credential arguments, sanitize records, exclude conventional credential files and linked skill roots, scope repository skill resources to the worktree, atomically replace reports, and defer Git status until confirmed execution |
+| CP-030 | `0f7f53d` | Reject split, prefixed, camelCase and environment-assignment credential options before persistence; 211 tests pass on Python 3.11/3.13 and all four macOS/Linux CI jobs pass |
+| CP-031 | `docs: record overnight CLI validation and review` | Final operational scope, PR reference, account-independent validation and resolved Standards/Spec reviews |
 
 Use `git log --all --oneline` to find the SHA for a checkpoint identified by
 commit subject. Earlier checkpoint source is recoverable even after its branch
@@ -136,7 +139,19 @@ Git source rollback does not remove those records or recover uncommitted edits.
 Before removing a run's worktree or branch, inspect `status` (including new files)
 and `diff`, commit/back up valuable work and record the session's base commit.
 
-Local simulated-provider validation currently passes 191 tests. Account access,
-real model compliance and a complete overnight pilot are not claimed. The CLI
+Local simulated-provider validation passes 211 tests under Python 3.11 and 3.13.
+Ruff formatting/lint, strict mypy and wheel/source builds pass. CI run
+[41535885524](https://github.com/speillet/token_maxxxer/actions/runs/41535885524)
+at `0f7f53d` passed all four macOS/Linux jobs. Package audits exclude the local
+`.env`, and a network-free CLI preview and documentation-link checks pass.
+
+Standards review initially found credential-bearing command arguments,
+conventional credential files, linked skill ancestors and non-atomic reports.
+Spec review found ignored skill resource reads and pre-confirmation Git clean
+filter execution. All findings have dedicated regression coverage and are fixed;
+targeted rereviews report zero remaining findings on either axis.
+
+Account access, real model compliance and a complete overnight pilot are not
+claimed. The CLI
 is foreground-only: no schedule-window service, durable resume, arbitrary shell,
 external skill plugins, automatic commits, push or merge are implemented.
