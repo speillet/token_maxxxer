@@ -9,7 +9,8 @@ remplace pas les checkpoints d'exécution LangGraph du futur jalon 4.
 | --- | --- | --- |
 | 0 — Abonnement | Partiel | Contrat documentaire ; CLI absent de cette machine, validation du compte et appel réel à faire |
 | 1 — Socle Python | Socle livré | Configuration, modèles, SQLite, CLI en lecture/simulation et tests locaux ; modules d'exécution aux jalons suivants |
-| 2 à 7 | À faire | Suivre `roadmap.md` ; aucune exécution Claude réelle dans ce lot |
+| 2 — Exécuteur | En cours, hors ligne | Résultat normalisé, faux exécuteur et transport subprocess ; qualification réelle toujours ouverte |
+| 3 à 7 | À faire | Suivre `roadmap.md` ; aucune exécution Claude réelle dans ce lot |
 
 Le socle se développe hors ligne pendant que la validation opérationnelle du
 jalon 0 reste ouverte. Le chemin d'exécution abonnement ne sera pas activé avant
@@ -26,6 +27,8 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | CP-004 | `9dcefaf` | Diagnostic sans inférence, import/liste, `run --dry-run` et JSON | 10 tests CLI ; 50 tests au total, paquet construit |
 | CP-005 | `425075f` | CI Python 3.11/3.13, conventions et documentation des commandes disponibles | Actions épinglées par SHA ; 50 tests locaux sur les deux versions et smoke CLI en processus séparés |
 | CP-006 | `e3f7f88` | Correction du constat P2 des revues Standards et Spec : chemins SQLite imbriqués et parent fichier refusés | 55 tests sur Python 3.11 ; correction confirmée par les deux revues |
+| CP-007 | `ae1ecf7` | Socle Python documenté, point de départ du jalon 2 | Arbre propre à la reprise ; PR #1 ouverte |
+| CP-008 | Commit `feat(runner): normalize terminal results and redact diagnostics` | Classification conservatrice du JSON terminal, usage inconnu et diagnostics expurgés | Fixtures synthétiques ; tests de résultats et de credentials factices |
 
 ## Livraison du socle
 
