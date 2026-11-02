@@ -53,6 +53,15 @@ seront livrées aux jalons suivants. LangGraph, LangChain Core et le checkpointe
 SQLite sont installés ; aucun workflow d'exécution n'est encore raccordé.
 Contrôles de développement : [CONTRIBUTING.md](CONTRIBUTING.md).
 
+Les fichiers `.env` et `.env.*` locaux sont exclus de Git ; seul
+[`.env.example`](.env.example) est suivi. Pour conserver un credential sans texte
+clair sur disque, placer le secret dans le gestionnaire de credentials du système
+(Trousseau sur macOS) et seulement sa référence dans `.env`, avec des permissions
+`0600`. La référence `NIGHTSHIFT_CLAUDE_CREDENTIAL_REF` est une convention locale
+de stockage : Nightshift ne charge pas `.env` et ne résout pas cette référence.
+Elle n'active aucun backend API ni consommation payante. Le parcours abonnement
+continue d'utiliser la connexion officielle du CLI.
+
 ## Exécuteur — validation hors ligne
 
 `claude_runner.py` fournit l'interface `ClaudeRunner`, un `FakeClaudeRunner`

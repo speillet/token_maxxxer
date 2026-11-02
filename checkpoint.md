@@ -31,9 +31,10 @@ cette validation. Aucune fixture synthétique ne vaut preuve d'un appel réel.
 | CP-008 | `552e051` | Classification conservatrice du JSON terminal, usage inconnu et diagnostics expurgés | 36 tests de résultats, fixtures synthétiques et credentials factices |
 | CP-009 | `ecb3b67` | stdin littéral, sorties séparées, délais, limites de sortie et arrêt des descendants | Tests POSIX, enfant ignorant SIGTERM, parent terminé et interruption clavier ; correctif macOS CP-011 nécessaire |
 | CP-010 | `819261c` | Interface ClaudeRunner, faux déterministe et précontrôles avant une seule invocation | 28 tests sur faux CLI local ; refus d'environnement incompatible, version différente et compte non confirmé |
-| CP-011 | Commit `fix(process): handle macOS probes after process termination` | Cas macOS EPERM sur groupe terminé : interruption initiale préservée, refus sur processus vivant conservé | Régression simulée et vraie interruption ; suite complète et build relancés |
-| CP-012 | Commit `fix(runner): redact decoded JSON and reject unknown result fields` | Corrections des revues : credentials cités/échappés et champs inconnus ; fins interrompues refusées | Régressions sur sérialisation complète, espaces, JSON tronqué et métadonnées reconnues |
-| CP-013 | Commit `fix(security): redact duplicate JSON and multiline credentials` | Décodeur JSON unique, doublons refusés avant expurgation, credentials multilignes supprimés | Régressions sur valeurs écrasées dans un JSON invalide et continuations de ligne |
+| CP-011 | `f352270` | Cas macOS EPERM sur groupe terminé : interruption initiale préservée, refus sur processus vivant conservé | Régression simulée et vraie interruption ; suite complète et build relancés |
+| CP-012 | `3cba885` | Corrections des revues : credentials cités/échappés et champs inconnus ; fins interrompues refusées | Régressions sur sérialisation complète, espaces, JSON tronqué et métadonnées reconnues |
+| CP-013 | `7195818` | Décodeur JSON unique, doublons refusés avant expurgation, credentials multilignes supprimés | 156 tests, Ruff, mypy et build ; constats Standards et Spec revérifiés et fermés |
+| CP-014 | Commit `docs: document private credential references and runner delivery` | Convention de référence locale au gestionnaire de credentials, exemple sans secret et livraison exécuteur | `.env` ignoré par Git et permissions locales 0600 ; aucune clé dans les fichiers suivis |
 
 ## Livraison du socle
 
@@ -53,6 +54,19 @@ Chaque livraison ajoute ici son périmètre, ses vérifications et le nom du com
 Pour retrouver son SHA : `git log --oneline --all`. Les commits portent une seule
 responsabilité et utilisent Conventional Commits.
 
+## Livraison de l'exécuteur hors ligne
+
+- Branche : `feat/claude-runner`, basée sur la PR #1 encore ouverte.
+- 156 tests sous Python 3.11 ; Ruff, typage strict et construction sdist/wheel validés.
+- Revue Standards : corrections des credentials échappés/dupliqués et du schéma
+  strict vérifiées ; aucun constat ouvert sur ce périmètre.
+- Revue Spec : correction des diagnostics expurgés vérifiée ; aucun constat ouvert.
+- Limites : CLI réel et pilote abonnement non qualifiés, pause durable et
+  gestionnaire SIGTERM du superviseur à raccorder avant activation/service.
+- Données locales : `.env` contient uniquement une référence, avec permissions
+  0600 ; le secret réside dans le gestionnaire de credentials du système. Aucun
+  chargement de `.env` ni appel API n'est activé dans le mode abonnement.
+
 ## Retour arrière
 
 Pour inspecter un point sans toucher au travail courant :
@@ -69,6 +83,8 @@ Les données locales (`var/`, worktrees, rapports) sont exclues de Git : un reve
 de code ne les restaure pas. Avant une migration future, arrêter le service et
 effectuer une sauvegarde SQLite avec son API `backup` ; conserver aussi les
 worktrees non validés. La migration initiale n'a pas de downgrade destructif.
+Le rollback Git ne modifie ni `.env` ni le trousseau système ; gérer séparément
+ces données locales si leur suppression ou leur rotation est nécessaire.
 
 ## Prochaine reprise
 
