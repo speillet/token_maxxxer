@@ -2,7 +2,6 @@
 
 import fcntl
 import json
-import re
 import signal
 import threading
 import time
@@ -46,13 +45,23 @@ class NightPlan(Model):
         cls, commands: tuple[tuple[str, ...], ...]
     ) -> tuple[tuple[str, ...], ...]:
         encoded = json.dumps(commands)
-        sensitive_option = re.compile(
-            r"^(?:--?)?(?:api[-_]?key|access[-_]?token|token|password|secret|credential|authorization)"
-            r"(?:=|$)",
-            re.IGNORECASE,
-        )
+
+        def credential_option(argument: str) -> bool:
+            name = argument.partition("=")[0].lstrip("-").replace("-", "").replace("_", "").lower()
+            return name == "key" or name.endswith(
+                (
+                    "apikey",
+                    "token",
+                    "password",
+                    "secret",
+                    "credential",
+                    "credentials",
+                    "authorization",
+                )
+            )
+
         if redact(encoded) != encoded or any(
-            "\x00" in argument or sensitive_option.match(argument)
+            "\x00" in argument or credential_option(argument)
             for command in commands
             for argument in command
         ):

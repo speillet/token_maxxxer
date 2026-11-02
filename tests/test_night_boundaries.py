@@ -77,6 +77,11 @@ def test_symlinked_skill_ancestors_are_not_discovered(repository, tmp_path, monk
         ("check", "sk-fixture-private-value"),
         ("check", "--password", "fictional-private"),
         ("check", "--token=fictional-private"),
+        ("check", "--refresh-token", "fictional-private"),
+        ("check", "--client-secret", "fictional-private"),
+        ("check", "--auth-token", "fictional-private"),
+        ("check", "--refreshToken", "fictional-private"),
+        ("check", "PROVIDER_API_KEY=fictional-private"),
     ],
 )
 def test_verification_credentials_are_rejected_before_persistence(repository, arguments) -> None:
