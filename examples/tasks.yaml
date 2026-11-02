@@ -1,0 +1,10 @@
+tasks:
+  - id: document-demo
+    repository: ..
+    base_ref: main
+    priority: 10
+    prompt: Ajouter un exemple de validation dans un dépôt de démonstration.
+    acceptance_criteria:
+      - L'exemple est documenté et les tests existants passent.
+    verification_commands:
+      - [python, -m, pytest, -q]

@@ -18,6 +18,9 @@ dependencies = [
   "tzdata>=2025.2",
 ]
 
+[project.scripts]
+nightshift = "nightshift.cli:main"
+
 [dependency-groups]
 dev = [
   "mypy>=1.15,<2",
