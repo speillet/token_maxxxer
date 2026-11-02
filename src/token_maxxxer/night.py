@@ -47,6 +47,10 @@ class NightPlan(Model):
         encoded = json.dumps(commands)
 
         def credential_option(argument: str) -> bool:
+            # Only options and assignments name a credential; positional words such as
+            # `pytest -k token` select checks and carry no value.
+            if not argument.startswith("-") and "=" not in argument:
+                return False
             name = argument.partition("=")[0].lstrip("-").replace("-", "").replace("_", "").lower()
             return name == "key" or name.endswith(
                 (

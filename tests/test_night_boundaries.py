@@ -96,6 +96,24 @@ def test_verification_credentials_are_rejected_before_persistence(repository, ar
     assert "sk-fixture-private-value" not in str(error.value)
 
 
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ("pytest", "-k", "token"),
+        ("npm", "run", "lint:secret"),
+        ("make", "key"),
+    ],
+)
+def test_positional_credential_words_are_allowed(repository, arguments) -> None:
+    plan = NightPlan(
+        repository=repository,
+        skill="builtin:improve-code",
+        provider=ProviderConfig(model="fixture"),
+        verification_commands=(arguments,),
+    )
+    assert plan.verification_commands == (arguments,)
+
+
 def test_public_session_serialization_redacts_defensively(repository) -> None:
     plan = NightPlan(
         repository=repository,
