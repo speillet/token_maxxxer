@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from datetime import UTC, datetime
@@ -219,3 +220,115 @@ def test_delay_after_remaining_calculation_cannot_launch_after_closing(
     monkeypatch.setattr(launcher, "run_night", actual_run)
     assert launcher.run_once(launch_request, clock=lambda: now[0]) == 0
     assert json.loads((launch_request.parent / "status.json").read_text())["phase"] == "expired"
+
+
+def test_preloaded_credential_skips_keychain(launcher, launch_request, monkeypatch) -> None:
+    observed = install_fakes(launcher, monkeypatch)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("a preloaded credential must not reenter Keychain")
+
+    monkeypatch.setattr(launcher, "resolve_credential", forbidden)
+    assert (
+        launcher.run_once(
+            launch_request, clock=lambda: 150, credential=SecretStr("sk-fixture-private-value")
+        )
+        == 0
+    )
+    assert len(observed) == 1
+
+
+def test_pipe_handoff_preserves_secret_without_exposing_arguments(
+    launcher, launch_request, monkeypatch
+) -> None:
+    captured = []
+
+    def spawn(arguments, **options):
+        captured.append((arguments, options, os.dup(options["pass_fds"][0])))
+        return SimpleNamespace(pid=123)
+
+    monkeypatch.setattr(launcher.subprocess, "Popen", spawn)
+    key = SecretStr("sk-fixture-private-value")
+    assert launcher._detach(launch_request, key) == 123
+    arguments, options, received = captured[0]
+    assert key.get_secret_value() not in repr(arguments)
+    assert "env" not in options
+    assert options["start_new_session"] is True
+    assert options["stdin"] == subprocess.DEVNULL
+    with os.fdopen(received, "rb") as stream:
+        assert stream.read() == b"sk-fixture-private-value"
+    assert (launch_request.parent / "worker.log").read_bytes() == b""
+
+
+def test_pipe_credential_accepts_only_bounded_pipe_input(launcher, launch_request) -> None:
+    request = launcher.OneShotRequest.model_validate_json(launch_request.read_text())
+    read_end, write_end = os.pipe()
+    os.write(write_end, b"sk-fixture-private-value")
+    os.close(write_end)
+    credential = launcher._pipe_credential(request, read_end)
+    assert credential.get_secret_value() == "sk-fixture-private-value"
+    with launch_request.open("rb") as stream, pytest.raises(ValueError, match="pipe"):
+        launcher._pipe_credential(request, os.dup(stream.fileno()))
+    for raw in (b"", b"x" * 4097):
+        read_end, write_end = os.pipe()
+        os.write(write_end, raw)
+        os.close(write_end)
+        with pytest.raises(ValueError):
+            launcher._pipe_credential(request, read_end)
+
+
+def test_main_masked_prompt_hands_off_only_in_memory(
+    launcher, launch_request, monkeypatch, capsys
+) -> None:
+    monkeypatch.setattr(launcher.time, "time", lambda: 150)
+    monkeypatch.setattr(launcher.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(
+        launcher.sys,
+        "argv",
+        ["launcher", "--request-file", str(launch_request), "--prompt-key", "--detach"],
+    )
+    monkeypatch.setattr(launcher.getpass, "getpass", lambda _: "sk-fixture-private-value")
+    captured = []
+
+    def detach(path, credential):
+        captured.append(credential)
+        return 123
+
+    monkeypatch.setattr(launcher, "_detach", detach)
+    assert launcher.main() == 0
+    assert captured[0].get_secret_value() == "sk-fixture-private-value"
+    output = capsys.readouterr()
+    assert "sk-fixture-private-value" not in output.out + output.err
+    assert "sk-fixture-private-value" not in (launch_request.parent / "status.json").read_text()
+    assert not (launch_request.parent / "attempted").exists()
+
+
+def test_main_refuses_prompt_when_echo_cannot_be_disabled(
+    launcher, launch_request, monkeypatch, capsys
+) -> None:
+    import warnings
+
+    monkeypatch.setattr(launcher.time, "time", lambda: 150)
+    monkeypatch.setattr(launcher.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(
+        launcher.sys, "argv", ["launcher", "--request-file", str(launch_request), "--prompt-key"]
+    )
+
+    def unavailable_echo(prompt):
+        warnings.warn("Cannot hide terminal input", launcher.getpass.GetPassWarning, stacklevel=1)
+        raise AssertionError("must refuse before reading with echo enabled")
+
+    monkeypatch.setattr(launcher.getpass, "getpass", unavailable_echo)
+    assert launcher.main() == 1
+    assert "GetPassWarning" in capsys.readouterr().err
+    assert not (launch_request.parent / "attempted").exists()
+
+
+def test_main_refuses_a_nonterminal_key_prompt(launcher, launch_request, monkeypatch) -> None:
+    monkeypatch.setattr(launcher.time, "time", lambda: 150)
+    monkeypatch.setattr(launcher.sys.stdin, "isatty", lambda: False)
+    monkeypatch.setattr(
+        launcher.sys, "argv", ["launcher", "--request-file", str(launch_request), "--prompt-key"]
+    )
+    assert launcher.main() == 1
+    assert not (launch_request.parent / "attempted").exists()

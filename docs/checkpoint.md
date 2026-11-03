@@ -125,6 +125,7 @@ their heads are confirmed to be ancestors of main; rollback commits remain reach
 | CP-038 | `6f5c625` | Tested one-shot helper, no-replay marker, absolute closing deadline, private status and optional macOS idle-sleep inhibition; non-interactive knowledge-vault consistency skill |
 | CP-039 | `38c2009` | Absolute closing time also bounds runner preparation and pre-provider journal I/O; error-status failures cannot chain secret-bearing tracebacks; 229 tests and all four CI jobs pass |
 | CP-040 | `docs: record supervised pilot preparation and validation` | Both review axes resolved; published target source and checks pinned; actual launch readiness distinguished from successful model-list authentication |
+| CP-041 | `fix(pilot): support masked local credential handoff` | Explicit TTY-only masked input and anonymous-pipe transfer to a detached worker; Keychain is skipped for the preloaded secret, which is not written to argv, environment, files or logs |
 
 Use `git log --all --oneline` to find the SHA for a checkpoint identified by
 commit subject. Earlier checkpoint source is recoverable even after its branch
