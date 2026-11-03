@@ -3,7 +3,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -332,3 +332,67 @@ def test_main_refuses_a_nonterminal_key_prompt(launcher, launch_request, monkeyp
     )
     assert launcher.main() == 1
     assert not (launch_request.parent / "attempted").exists()
+
+
+def test_real_detached_worker_consumes_pipe_without_keychain_or_network(
+    launcher, launch_request
+) -> None:
+    request = json.loads(launch_request.read_text())
+    now = datetime.now(UTC)
+    request["starts_at"] = now.isoformat()
+    request["ends_at"] = (now + timedelta(minutes=5)).isoformat()
+    # Copilot is recognized but rejected before network access, making the real
+    # child process safe to exercise with a fictional credential.
+    request["plan"]["provider"]["name"] = "copilot"
+    write_record(launch_request, request)
+    pid = launcher._detach(launch_request, SecretStr("sk-fixture-private-value"))
+    _, status = os.waitpid(pid, 0)
+    assert os.waitstatus_to_exitcode(status) == 1
+    recorded = (launch_request.parent / "status.json").read_text()
+    assert json.loads(recorded)["exception"] == "UnsupportedProviderError"
+    assert "sk-fixture-private-value" not in recorded
+    assert "sk-fixture-private-value" not in (launch_request.parent / "worker.log").read_text()
+
+
+def test_request_inside_repository_never_prompts_or_overwrites_project_files(
+    launcher, launch_request, repository, monkeypatch
+) -> None:
+    path = repository / "request.json"
+    path.write_bytes(launch_request.read_bytes())
+    project_status = repository / "status.json"
+    project_status.write_text("Existing project data.", encoding="utf-8")
+    monkeypatch.setattr(
+        launcher.sys, "argv", ["launcher", "--request-file", str(path), "--prompt-key", "--detach"]
+    )
+    monkeypatch.setattr(launcher.sys.stdin, "isatty", lambda: True)
+
+    def forbidden(*args):
+        raise AssertionError("validate repository boundary before prompting or spawning")
+
+    monkeypatch.setattr(launcher.getpass, "getpass", forbidden)
+    monkeypatch.setattr(launcher, "_detach", forbidden)
+    assert launcher.main() == 1
+    assert project_status.read_text() == "Existing project data."
+    assert not (repository / "worker.log").exists()
+
+
+@pytest.mark.parametrize("failure", [KeyboardInterrupt(), OSError("Simulated pipe failure.")])
+def test_interrupted_handoff_stops_and_reaps_worker(
+    launcher, launch_request, monkeypatch, failure
+) -> None:
+    signals = []
+    waits = []
+    process = SimpleNamespace(pid=123, wait=lambda **kwargs: waits.append(kwargs))
+    monkeypatch.setattr(launcher.subprocess, "Popen", lambda *args, **kwargs: process)
+    monkeypatch.setattr(launcher.os, "killpg", lambda pid, sig: signals.append((pid, sig)))
+    original_write = os.write
+
+    def interrupted_write(descriptor, value):
+        original_write(descriptor, value)
+        raise failure
+
+    monkeypatch.setattr(launcher.os, "write", interrupted_write)
+    with pytest.raises(type(failure)):
+        launcher._detach(launch_request, SecretStr("sk-fixture-private-value"))
+    assert signals == [(123, launcher.signal.SIGTERM)]
+    assert waits == [{"timeout": 2}]

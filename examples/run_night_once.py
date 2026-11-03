@@ -55,6 +55,13 @@ class OneShotRequest(Model):
         return self
 
 
+def _load_request(path: Path) -> OneShotRequest:
+    request = OneShotRequest.model_validate(read_record(path))
+    if path.parent.resolve().is_relative_to(request.plan.repository.resolve()):
+        raise ValueError("launcher records must be outside the selected repository")
+    return request
+
+
 def run_once(
     request_file: Path,
     *,
@@ -62,10 +69,8 @@ def run_once(
     sleep: Callable[[float], None] = time.sleep,
     credential: SecretStr | None = None,
 ) -> int:
-    request = OneShotRequest.model_validate(read_record(request_file))
+    request = _load_request(request_file)
     directory = request_file.parent
-    if directory.resolve().is_relative_to(request.plan.repository.resolve()):
-        raise ValueError("launcher records must be outside the selected repository")
     # A permanent attempt marker prevents supervisor restarts from replaying work.
     try:
         descriptor = os.open(directory / "attempted", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -190,41 +195,57 @@ def _pipe_credential(request: OneShotRequest, descriptor: int) -> SecretStr:
     return _input_credential(request, raw.decode("ascii"))
 
 
+def _stop_worker(process: subprocess.Popen[bytes]) -> None:
+    with suppress(ProcessLookupError):
+        os.killpg(process.pid, signal.SIGTERM)
+    try:
+        process.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        with suppress(ProcessLookupError):
+            os.killpg(process.pid, signal.SIGKILL)
+        process.wait()
+
+
 def _detach(request_file: Path, credential: SecretStr) -> int:
     read_end, write_end = os.pipe()
     log = -1
+    process = None
     try:
-        log = os.open(
-            request_file.parent / "worker.log",
-            os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW,
-            0o600,
-        )
-        process = subprocess.Popen(
-            [
-                sys.executable,
-                str(Path(__file__).resolve()),
-                "--request-file",
-                str(request_file),
-                "--credential-fd",
-                str(read_end),
-            ],
-            stdin=subprocess.DEVNULL,
-            stdout=log,
-            stderr=log,
-            pass_fds=(read_end,),
-            start_new_session=True,
-        )
-        # Only the pipe descriptor appears in argv; the value stays in process/pipe memory.
-        raw = credential.get_secret_value().encode("ascii")
-        if os.write(write_end, raw) != len(raw):
-            process.terminate()
-            raise ValueError("incomplete credential handoff")
-        return process.pid
-    finally:
-        os.close(read_end)
-        os.close(write_end)
-        if log >= 0:
-            os.close(log)
+        try:
+            log = os.open(
+                request_file.parent / "worker.log",
+                os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW,
+                0o600,
+            )
+            process = subprocess.Popen(
+                [
+                    sys.executable,
+                    str(Path(__file__).resolve()),
+                    "--request-file",
+                    str(request_file),
+                    "--credential-fd",
+                    str(read_end),
+                ],
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=log,
+                pass_fds=(read_end,),
+                start_new_session=True,
+            )
+            # Only the pipe FD appears in argv; the value stays in process/pipe memory.
+            raw = credential.get_secret_value().encode("ascii")
+            if os.write(write_end, raw) != len(raw):
+                raise ValueError("incomplete credential handoff")
+        finally:
+            os.close(read_end)
+            os.close(write_end)
+            if log >= 0:
+                os.close(log)
+    except BaseException:
+        if process is not None:
+            _stop_worker(process)
+        raise
+    return process.pid
 
 
 def main() -> int:
@@ -251,6 +272,7 @@ def main() -> int:
 
     previous_term = signal.signal(signal.SIGTERM, terminate)
     prompting = False
+    detached_pid = None
 
     def prompt_outcome(phase: str) -> None:
         if prompting:
@@ -262,7 +284,7 @@ def main() -> int:
 
     try:
         request_file = arguments.request_file.expanduser().resolve()
-        request = OneShotRequest.model_validate(read_record(request_file))
+        request = _load_request(request_file)
         if (request_file.parent / "attempted").exists():
             print("This request was already attempted; inspect its existing status.")
             return 2
@@ -292,15 +314,22 @@ def main() -> int:
             del value
         if arguments.detach:
             assert credential is not None
-            pid = _detach(request_file, credential)
+            detached_pid = _detach(request_file, credential)
             prompting = False
             print(
-                f"Worker {pid} launched. Check {request_file.parent / 'status.json'} for readiness."
+                f"Worker {detached_pid} launched. "
+                f"Check {request_file.parent / 'status.json'} for readiness."
             )
             return 0
         prompting = False
         return run_once(request_file, credential=credential)
     except KeyboardInterrupt:
+        if detached_pid is not None:
+            print(
+                f"Worker {detached_pid} was already handed off; inspect its status.",
+                file=sys.stderr,
+            )
+            return 0
         prompt_outcome("cancelled")
         print("Launch cancelled.", file=sys.stderr)
         return 130
