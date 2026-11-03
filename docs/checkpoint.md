@@ -1,6 +1,6 @@
 # Checkpoints — token_maxxxer
 
-Updated November 2, 2026. This file records code deliveries, validation, merge
+Updated November 3, 2026. This file records code deliveries, validation, merge
 history, and rollback points. It does not replace future workflow checkpoints.
 
 ## Current direction
@@ -90,6 +90,7 @@ their heads are confirmed to be ancestors of main; rollback commits remain reach
 | CP-034 | `88a4118` | Plan validation, including review mode without checks, lives only in `NightPlan` |
 | CP-035 | `345f071` | Local failures record the exception class name without its message; 217 tests pass |
 | CP-036 | `docs: move project documentation into docs/` | `README.md`, guide index, and `docs/roadmap.md`/`docs/checkpoint.md`; overnight details moved to `docs/night-cli.md` |
+| CP-037 | `fix(credentials): allow bounded interactive Keychain approval` | Optional approval timeout up to 300 seconds, with the existing ten-second default preserved and simulated credential coverage |
 
 Use `git log --all --oneline` to find the SHA for a checkpoint identified by
 commit subject. Earlier checkpoint source is recoverable even after its branch

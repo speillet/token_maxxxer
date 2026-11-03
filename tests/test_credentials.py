@@ -94,3 +94,19 @@ def test_bad_credential_values_are_not_echoed(tmp_path, value) -> None:
 def test_missing_key_does_not_fall_back_to_another_provider(tmp_path) -> None:
     with pytest.raises(CredentialError, match="missing"):
         resolve_credential(settings(), tmp_path / ".env", {"OPENAI_API_KEY": "sk-fixture-openai"})
+
+
+def test_explicit_keychain_approval_timeout_is_bounded_and_forwarded(tmp_path, monkeypatch) -> None:
+    path = tmp_path / ".env"
+    path.write_text("TOKEN_MAXXXER_CLAUDE_CREDENTIAL_REF=keychain://fixture/account\n")
+    monkeypatch.setattr("token_maxxxer.credentials.sys.platform", "darwin")
+
+    def execute(arguments, **kwargs):
+        assert kwargs["timeout"] == 120
+        return subprocess.CompletedProcess(arguments, 0, stdout=b"sk-fixture-value\n")
+
+    monkeypatch.setattr("token_maxxxer.credentials.subprocess.run", execute)
+    assert resolve_credential(settings(), path, {}, keychain_timeout_seconds=120)
+    for timeout in (0, -1, 301, float("inf"), float("nan")):
+        with pytest.raises(CredentialError, match="timeout"):
+            resolve_credential(settings(), path, {}, keychain_timeout_seconds=timeout)
