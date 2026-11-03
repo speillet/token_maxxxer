@@ -33,6 +33,25 @@ Standards and Spec rereviews report zero open findings after absolute-deadline
 and secret-safe reporting corrections. The one-shot helper does not implement
 recurring schedules, login persistence, durable replay or a production service.
 
+### Missing-dialog follow-up
+
+The next supervised attempt and a foreground Terminal attempt also failed to
+read the credential. The login keychain was observed unlocked, and no visible
+authorization dialog was confirmed. A timeout must not be described as proof
+that a dialog is displayed or that the key is accessible in the background.
+
+PR #7 adds an explicit masked local-input path. A fresh Terminal launcher was
+observed on a real TTY with `waiting_for_local_key`: it had not received a key,
+created an attempt marker or started inference. After local entry, the value
+travels only through an anonymous pipe to the detached worker. Readiness still
+requires observing `scheduled` or `running`, not merely a PID or open window.
+
+Both review axes are clear after correcting pre-prompt repository validation
+and interrupted-worker cleanup. The 239-test suite passes on Python 3.11 and
+3.13, including a real child-process handoff that deliberately rejects Copilot
+before network access. Existing `.env`/Keychain data and target worktrees remain
+unchanged. Private frozen helpers and request files are outside the repository.
+
 ## Current direction
 
 The repository, package, and command are named `token_maxxxer`. Claude and OpenAI
@@ -63,6 +82,7 @@ messages, examples, and test descriptions are maintained in English.
 | [#4](https://github.com/speillet/token_maxxxer/pull/4) | Remove dead code and unused dependencies; translate maintained content | Merged into main as `c72dd91` |
 | [#5](https://github.com/speillet/token_maxxxer/pull/5) | Interactive repository/skill selection and isolated overnight sessions | Feature delivery; current review/CI status is available on the linked PR |
 | [#6](https://github.com/speillet/token_maxxxer/pull/6) | Supervised one-shot launcher and knowledge-vault maintenance skill | Current delivery and integration status are available on the linked PR |
+| [#7](https://github.com/speillet/token_maxxxer/pull/7) | Masked local credential input and detached in-memory handoff | Current delivery and integration status are available on the linked PR |
 
 The cleanup branch starts at `fc0a7c3`. It removes the old CLI adapter, its
 subprocess transport and authentication constants, terminal wire parser, fake
@@ -124,8 +144,9 @@ their heads are confirmed to be ancestors of main; rollback commits remain reach
 | CP-037 | `f91fabc` | Optional approval timeout up to 300 seconds, with the existing ten-second default preserved and simulated credential coverage |
 | CP-038 | `6f5c625` | Tested one-shot helper, no-replay marker, absolute closing deadline, private status and optional macOS idle-sleep inhibition; non-interactive knowledge-vault consistency skill |
 | CP-039 | `38c2009` | Absolute closing time also bounds runner preparation and pre-provider journal I/O; error-status failures cannot chain secret-bearing tracebacks; 229 tests and all four CI jobs pass |
-| CP-040 | `docs: record supervised pilot preparation and validation` | Both review axes resolved; published target source and checks pinned; actual launch readiness distinguished from successful model-list authentication |
-| CP-041 | `fix(pilot): support masked local credential handoff` | Explicit TTY-only masked input and anonymous-pipe transfer to a detached worker; Keychain is skipped for the preloaded secret, which is not written to argv, environment, files or logs |
+| CP-040 | `8eb310c` | Both review axes resolved; published target source and checks pinned; actual launch readiness distinguished from successful model-list authentication |
+| CP-041 | `ffe5310` | Explicit TTY-only masked input and anonymous-pipe transfer to a detached worker; Keychain is skipped for the preloaded secret, which is not written to argv, environment, files or logs |
+| CP-042 | `bcbfdd7` | Validate request location before prompts/records; interrupted handoffs terminate/reap their worker; a real child-process test verifies pipe transfer without network access; 239 tests pass |
 
 Use `git log --all --oneline` to find the SHA for a checkpoint identified by
 commit subject. Earlier checkpoint source is recoverable even after its branch

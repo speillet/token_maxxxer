@@ -74,6 +74,9 @@ only that the process was launched: inspect `status.json` for `scheduled` or
 `running` before declaring readiness. `worker.log` contains only safe diagnostics.
 Cancel a waiting prompt with Ctrl+C. An expired or previously attempted request
 is rejected before prompting. A detached process does not survive logout/reboot.
+An interrupted or failed handoff terminates and reaps its worker. Once the
+handoff completes, closing the input terminal leaves the worker running;
+inspect its recorded PID/status and send SIGTERM to stop it explicitly.
 
 ## Knowledge vault pilot
 
