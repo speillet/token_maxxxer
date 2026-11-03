@@ -3,6 +3,36 @@
 Updated November 3, 2026. This file records code deliveries, validation, merge
 history, and rollback points. It does not replace future workflow checkpoints.
 
+## November 3 supervised pilot
+
+The requested target is `speillet/Knowledge_AI_Engineering`, with note consistency
+and internal links as the selected goal. Its dirty original clone is preserved.
+A separate clean source worktree is pinned to published commit
+`218570fa71cf0af0f977f82b6466c3f6900035f7`; its full `make check` passes with
+147 notes, zero structural warnings/errors and 54 tests. The maintenance skill
+preserves French, card IDs and verification dates, without inventing new claims.
+
+The prepared window is November 3 at 22:00 through November 4 at 07:00 in
+Europe/Paris, at most 100 calls, with Claude Sonnet 5.5 and approved `make check`.
+Private copies of the request, helper, skill/resources, a lockfile-pinned runtime
+and the verification environment are outside the target repository. Existing
+`.env` and Keychain entries are unchanged; no plaintext credential is written.
+
+The real Claude model-list endpoint authenticated successfully and exposed the
+configured model. This is not proof of inference quota or a completed pilot.
+The first supervised launch reached `authorizing`, then failed before execution
+when its two-minute native Keychain authorization expired. No model-generation
+request or target edit was made by that job. A further launch must use a fresh
+explicit attempt and be observed in `scheduled` state before claiming readiness;
+the permanent attempt marker must not be cleared for automatic replay.
+
+Implementation validation: 229 simulated tests pass; Ruff, strict mypy and
+source/wheel builds pass. All four macOS/Linux checks at `38c2009` pass in
+[CI run 41633836332](https://github.com/speillet/token_maxxxer/actions/runs/41633836332).
+Standards and Spec rereviews report zero open findings after absolute-deadline
+and secret-safe reporting corrections. The one-shot helper does not implement
+recurring schedules, login persistence, durable replay or a production service.
+
 ## Current direction
 
 The repository, package, and command are named `token_maxxxer`. Claude and OpenAI
@@ -32,6 +62,7 @@ messages, examples, and test descriptions are maintained in English.
 | [#3](https://github.com/speillet/token_maxxxer/pull/3) | Current name and Claude/OpenAI API providers | Retargeted to main and merged as `f7f5fb2`; four CI checks passed |
 | [#4](https://github.com/speillet/token_maxxxer/pull/4) | Remove dead code and unused dependencies; translate maintained content | Merged into main as `c72dd91` |
 | [#5](https://github.com/speillet/token_maxxxer/pull/5) | Interactive repository/skill selection and isolated overnight sessions | Feature delivery; current review/CI status is available on the linked PR |
+| [#6](https://github.com/speillet/token_maxxxer/pull/6) | Supervised one-shot launcher and knowledge-vault maintenance skill | Current delivery and integration status are available on the linked PR |
 
 The cleanup branch starts at `fc0a7c3`. It removes the old CLI adapter, its
 subprocess transport and authentication constants, terminal wire parser, fake
@@ -90,8 +121,10 @@ their heads are confirmed to be ancestors of main; rollback commits remain reach
 | CP-034 | `88a4118` | Plan validation, including review mode without checks, lives only in `NightPlan` |
 | CP-035 | `345f071` | Local failures record the exception class name without its message; 217 tests pass |
 | CP-036 | `docs: move project documentation into docs/` | `README.md`, guide index, and `docs/roadmap.md`/`docs/checkpoint.md`; overnight details moved to `docs/night-cli.md` |
-| CP-037 | `fix(credentials): allow bounded interactive Keychain approval` | Optional approval timeout up to 300 seconds, with the existing ten-second default preserved and simulated credential coverage |
-| CP-038 | `feat(pilot): prepare supervised knowledge-vault night runs` | Tested one-shot helper, no-replay marker, absolute closing deadline, private status and optional macOS idle-sleep inhibition; non-interactive knowledge-vault consistency skill |
+| CP-037 | `f91fabc` | Optional approval timeout up to 300 seconds, with the existing ten-second default preserved and simulated credential coverage |
+| CP-038 | `6f5c625` | Tested one-shot helper, no-replay marker, absolute closing deadline, private status and optional macOS idle-sleep inhibition; non-interactive knowledge-vault consistency skill |
+| CP-039 | `38c2009` | Absolute closing time also bounds runner preparation and pre-provider journal I/O; error-status failures cannot chain secret-bearing tracebacks; 229 tests and all four CI jobs pass |
+| CP-040 | `docs: record supervised pilot preparation and validation` | Both review axes resolved; published target source and checks pinned; actual launch readiness distinguished from successful model-list authentication |
 
 Use `git log --all --oneline` to find the SHA for a checkpoint identified by
 commit subject. Earlier checkpoint source is recoverable even after its branch
