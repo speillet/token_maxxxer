@@ -286,3 +286,34 @@ def test_interval_stops_at_deadline_instead_of_launching_another_cycle(
     assert sleeps == [3.6]
     assert session.calls == 1
     assert session.reason == "deadline_reached"
+
+
+def test_absolute_deadline_includes_time_spent_journaling_before_api_access(
+    repository, tmp_path, monkeypatch
+) -> None:
+    import token_maxxxer.night as night
+
+    now = [0.0]
+    save = night._save
+
+    def slow_save(session, directory):
+        if session.events and session.events[-1].get("state") == "requesting":
+            now[0] = 2
+        save(session, directory)
+
+    monkeypatch.setattr(night, "_save", slow_save)
+    plan = plan_for(repository)
+    skill = select_skill(discover_skills(repository), plan.skill, mode="edit")
+    provider = ScriptedProvider()
+    session = run_night(
+        plan,
+        skill,
+        tmp_path / "state",
+        provider,
+        SecretStr("fixture"),
+        clock=lambda: now[0],
+        stop_at=1,
+    )
+    assert provider.requests == []
+    assert session.reason == "deadline_reached"
+    assert session.events[-1]["state"] == "skipped_deadline"

@@ -21,7 +21,7 @@ from pydantic import Field, model_validator
 from token_maxxxer.credentials import resolve_credential
 from token_maxxxer.local_state import read_record, write_record
 from token_maxxxer.models import Model, UtcDatetime, utc_now
-from token_maxxxer.night import NightPlan, NightSession, run_night
+from token_maxxxer.night import NightPlan, NightSession, NightWindowClosed, run_night
 from token_maxxxer.providers import create_provider
 from token_maxxxer.repositories import git
 from token_maxxxer.skills import load_skill
@@ -124,7 +124,13 @@ def run_once(
             update("running", session_id=session.id, calls=session.calls)
 
         session = run_night(
-            plan, skill, request.state_directory, provider, credential, progress=progress
+            plan,
+            skill,
+            request.state_directory,
+            provider,
+            credential,
+            progress=progress,
+            stop_at=request.ends_at.timestamp(),
         )
         update(
             session.state,
@@ -134,12 +140,19 @@ def run_once(
             report=str(request.state_directory / "runs" / session.id / "report.md"),
         )
         return 130 if session.state == "interrupted" else 1 if session.state == "failed" else 0
+    except NightWindowClosed:
+        update("expired")
+        return 0
     except KeyboardInterrupt:
         update("cancelled")
         return 130
     except Exception as error:
         # Exception text and raw provider output can contain source or secrets.
-        update("failed", exception=type(error).__name__)
+        try:
+            update("failed", exception=type(error).__name__)
+        except Exception:
+            # Disk failures must not expose the original exception through chaining.
+            print("Cannot persist launch failure status.", file=sys.stderr)
         return 1
     finally:
         if awake is not None:
@@ -160,7 +173,11 @@ def main() -> int:
         raise KeyboardInterrupt
 
     signal.signal(signal.SIGTERM, terminate)
-    return run_once(arguments.request_file.expanduser().resolve())
+    try:
+        return run_once(arguments.request_file.expanduser().resolve())
+    except Exception as error:
+        print(f"Launch failed ({type(error).__name__}); inspect local storage.", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

@@ -61,7 +61,8 @@ def install_fakes(launcher, monkeypatch):
         observed.append("credential")
         return SecretStr("sk-fixture-private-value")
 
-    def run(plan, skill, state, provider, secret, progress):
+    def run(plan, skill, state, provider, secret, progress, stop_at):
+        assert stop_at == 200
         observed.append(plan)
         assert secret.get_secret_value() == "sk-fixture-private-value"
         session = SimpleNamespace(
@@ -168,3 +169,53 @@ def test_interrupt_during_wait_persists_cancellation(launcher, launch_request, m
     assert launcher.run_once(launch_request, clock=lambda: 0, sleep=sleep) == 130
     assert observed == ["credential"]
     assert json.loads((launch_request.parent / "status.json").read_text())["phase"] == "cancelled"
+
+
+def test_status_failure_never_exposes_an_original_credential_error(
+    launcher, launch_request, monkeypatch, capsys
+) -> None:
+    install_fakes(launcher, monkeypatch)
+    writer = launcher.write_record
+
+    def fail_credential(*args, **kwargs):
+        raise RuntimeError("sk-fixture-private-value")
+
+    def fail_status(path, value):
+        if value["phase"] == "failed":
+            raise OSError("Simulated full disk.")
+        writer(path, value)
+
+    monkeypatch.setattr(launcher, "resolve_credential", fail_credential)
+    monkeypatch.setattr(launcher, "write_record", fail_status)
+    assert launcher.run_once(launch_request, clock=lambda: 0) == 1
+    assert "sk-fixture-private-value" not in capsys.readouterr().err
+
+
+def test_delay_after_remaining_calculation_cannot_launch_after_closing(
+    launcher, launch_request, monkeypatch
+) -> None:
+    from token_maxxxer.night import run_night
+
+    install_fakes(launcher, monkeypatch)
+    now = [150.0]
+    git = launcher.git
+    probes = []
+
+    def delayed_git(*arguments, **kwargs):
+        probes.append(arguments)
+        if len(probes) == 2:
+            now[0] = 250
+        return git(*arguments, **kwargs)
+
+    class ForbiddenProvider:
+        def generate(self, *args):
+            raise AssertionError("the closed window must not reach a provider")
+
+    def actual_run(*args, **kwargs):
+        return run_night(*args, **kwargs, clock=lambda: now[0])
+
+    monkeypatch.setattr(launcher, "git", delayed_git)
+    monkeypatch.setattr(launcher, "create_provider", lambda _: ForbiddenProvider())
+    monkeypatch.setattr(launcher, "run_night", actual_run)
+    assert launcher.run_once(launch_request, clock=lambda: now[0]) == 0
+    assert json.loads((launch_request.parent / "status.json").read_text())["phase"] == "expired"
