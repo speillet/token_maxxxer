@@ -1,5 +1,6 @@
 """Resolve provider credentials without exposing them or modifying the environment."""
 
+import math
 import os
 import re
 import subprocess
@@ -99,7 +100,11 @@ def resolve_credential(
     provider: ProviderConfig,
     path: Path,
     environment: Mapping[str, str] | None = None,
+    *,
+    keychain_timeout_seconds: float = 10,
 ) -> SecretStr:
+    if not math.isfinite(keychain_timeout_seconds) or not 0 < keychain_timeout_seconds <= 300:
+        raise CredentialError("Keychain timeout must be between zero and 300 seconds")
     environment = os.environ if environment is None else environment
     secret = environment.get(KEY_VARIABLES[provider.name])
     if not secret:
@@ -117,7 +122,7 @@ def resolve_credential(
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
-                timeout=10,
+                timeout=keychain_timeout_seconds,
                 check=False,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:

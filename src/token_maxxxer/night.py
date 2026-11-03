@@ -2,6 +2,7 @@
 
 import fcntl
 import json
+import math
 import signal
 import threading
 import time
@@ -143,6 +144,10 @@ class NightSession(Model):
 
 class _DeadlineReached(BaseException):
     """Bypass SDK exception wrapping when the wall-clock deadline expires."""
+
+
+class NightWindowClosed(ValueError):
+    """An absolute closing deadline elapsed before execution could start."""
 
 
 @contextmanager
@@ -301,7 +306,10 @@ def run_night(
     clock: Callable[[], float] = time.time,
     sleep: Callable[[float], None] = time.sleep,
     progress: Callable[[NightSession], None] | None = None,
+    stop_at: float | None = None,
 ) -> NightSession:
+    if stop_at is not None and not math.isfinite(stop_at):
+        raise ValueError("the absolute closing deadline must be finite")
     repository = repository_root(plan.repository)
     if plan.mode == "edit" and git(repository, "status", "--porcelain=v1", "-z"):
         raise ValueError(
@@ -311,7 +319,13 @@ def run_night(
     if state.is_relative_to(repository):
         raise ValueError("session storage must be outside the selected repository")
     started = clock()
-    deadline = started + plan.hours * 3600
+    deadline = (
+        min(started + plan.hours * 3600, stop_at)
+        if stop_at is not None
+        else (started + plan.hours * 3600)
+    )
+    if deadline <= started:
+        raise NightWindowClosed("the session window closed during preparation")
     identifier = utc_now().strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
     directory = state / "runs" / identifier
     session = NightSession(
@@ -444,6 +458,10 @@ def _loop(
         event: dict[str, object] = {"call": session.calls, "state": "requesting"}
         session.events.append(event)
         _save(session, directory)
+        if clock() >= deadline:
+            event["state"] = "skipped_deadline"
+            session.reason = "deadline_reached"
+            break
         result = provider.generate(request, credential)
         event["state"] = result.status
         if progress:

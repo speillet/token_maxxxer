@@ -74,6 +74,11 @@ settings, and whether a credential or reference is configured. It does not read
 a Keychain secret, call a provider API, or authenticate the configured key.
 Claude Code and a Claude subscription are not required.
 
+For a single future window under a local supervisor, see
+[one supervised night](docs/one-shot-night.md). The example resolves credentials
+before waiting and records whether the job is actually ready; it does not
+install a recurring service or implement durable resume.
+
 ## Select a provider
 
 The complete example is [examples/token_maxxxer.yaml](examples/token_maxxxer.yaml).

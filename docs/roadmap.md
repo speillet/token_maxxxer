@@ -94,6 +94,12 @@ workflow replay, durable resume or automatic crash recovery.
 
 ## 6 — Services and reports
 
+A tested one-shot helper can already hold an explicitly resolved credential
+in memory, wait for a single absolute window and run under a local supervisor.
+It prevents replay and reports readiness; the macOS pilot uses a private
+`launchd` job. Recurring service installation and durable recovery remain open.
+See [one supervised night](one-shot-night.md).
+
 - [ ] Add user launchd and systemd services with explicit environments.
 - [ ] Resolve credentials without silent background authentication prompts.
 - [ ] Support clean installation, start, stop, inspection, and removal.
