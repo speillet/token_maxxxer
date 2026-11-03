@@ -49,6 +49,35 @@ interrupted work. It does not survive logout/reboot or replay work after a
 crash. Those behaviors need the future durable workflow and service milestones.
 Loading a job from a private request directory does not install a login service.
 
+## When Keychain does not show an authorization dialog
+
+A credential timeout does not prove that macOS displayed a dialog. Do not keep
+restarting background jobs on that assumption. For a fresh, unattempted request,
+the helper provides an explicit local terminal input path:
+
+```bash
+/absolute/path/to/token_maxxxer/.venv/bin/python \
+  /absolute/path/to/token_maxxxer/examples/run_night_once.py \
+  --request-file /private/path/to/fresh-launch/request.json --prompt-key --detach
+```
+
+Type or paste the selected provider's API key only into that terminal prompt.
+Echo is disabled; if masked input is unavailable, the helper refuses to read it.
+The value is validated without changing the process environment or `.env`.
+It travels through an inherited anonymous pipe to a detached worker, stays in
+memory there, and is never placed in argv, environment variables, files or logs.
+The worker skips Keychain retrieval and runs the same bounded, non-replaying plan.
+The terminal can close once the worker is confirmed ready.
+
+`waiting_for_local_key` means input is still needed. A printed worker PID means
+only that the process was launched: inspect `status.json` for `scheduled` or
+`running` before declaring readiness. `worker.log` contains only safe diagnostics.
+Cancel a waiting prompt with Ctrl+C. An expired or previously attempted request
+is rejected before prompting. A detached process does not survive logout/reboot.
+An interrupted or failed handoff terminates and reaps its worker. Once the
+handoff completes, closing the input terminal leaves the worker running;
+inspect its recorded PID/status and send SIGTERM to stop it explicitly.
+
 ## Knowledge vault pilot
 
 The example skill
