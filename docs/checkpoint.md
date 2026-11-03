@@ -91,6 +91,7 @@ their heads are confirmed to be ancestors of main; rollback commits remain reach
 | CP-035 | `345f071` | Local failures record the exception class name without its message; 217 tests pass |
 | CP-036 | `docs: move project documentation into docs/` | `README.md`, guide index, and `docs/roadmap.md`/`docs/checkpoint.md`; overnight details moved to `docs/night-cli.md` |
 | CP-037 | `fix(credentials): allow bounded interactive Keychain approval` | Optional approval timeout up to 300 seconds, with the existing ten-second default preserved and simulated credential coverage |
+| CP-038 | `feat(pilot): prepare supervised knowledge-vault night runs` | Tested one-shot helper, no-replay marker, absolute closing deadline, private status and optional macOS idle-sleep inhibition; non-interactive knowledge-vault consistency skill |
 
 Use `git log --all --oneline` to find the SHA for a checkpoint identified by
 commit subject. Earlier checkpoint source is recoverable even after its branch

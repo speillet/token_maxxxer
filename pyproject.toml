@@ -46,4 +46,4 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src/token_maxxxer"]
+files = ["src/token_maxxxer", "examples/run_night_once.py"]
