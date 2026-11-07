@@ -20,6 +20,7 @@ from token_maxxxer.night import (
     public_session_json,
     run_night,
 )
+from token_maxxxer.provider_routing import active_settings, with_fallbacks
 from token_maxxxer.providers import create_provider
 from token_maxxxer.publication import Publisher, publication_config
 from token_maxxxer.redaction import redact
@@ -71,7 +72,13 @@ def add_commands(
         night.add_argument(
             "--interval", type=float, default=60, help="seconds between skill cycles"
         )
-        night.add_argument("--provider", choices=("claude", "openai", "copilot"))
+        night.add_argument("--provider", choices=("claude", "openai", "codex", "copilot"))
+        night.add_argument(
+            "--fallback",
+            action="append",
+            metavar="PROVIDER:MODEL",
+            help="ordered fallback on exhausted quota; repeat to authorize another provider",
+        )
         night.add_argument("--model", help="explicit provider model ID")
         night.add_argument("--env-file", type=Path, help="private credential-reference file")
         night.add_argument(
@@ -265,12 +272,23 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
     if provider_name is None:
         if not interactive:
             raise ValueError("configure a provider/model or pass --provider and --model")
-        provider_name = _input("Provider (claude or openai)", "claude")
+        provider_name = _input("Provider (claude, openai, codex or copilot)", "claude")
     if not model:
         if not interactive:
             raise ValueError("an explicit --model or configured model is required")
         model = _input("Model ID from your provider account")
     values = settings.model_dump() if settings else {}
+    fallbacks = getattr(arguments, "fallback", None)
+    if fallbacks is not None:
+        configured = []
+        for value in fallbacks:
+            name, separator, fallback_model = value.partition(":")
+            if not separator or not fallback_model.strip():
+                raise ValueError("fallback must be PROVIDER:MODEL")
+            configured.append({"name": name, "model": fallback_model})
+        values["fallbacks"] = configured
+    elif settings and provider_name != settings.name:
+        values["fallbacks"] = []
     settings = ProviderConfig.model_validate({**values, "name": provider_name, "model": model})
     env_file = getattr(arguments, "env_file", None)
     env_file = (
@@ -348,14 +366,19 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
         Publisher(plan.publication, repository).preflight()
     provider = create_provider(settings)
     credential = resolve_credential(settings, env_file)
+    provider = with_fallbacks(
+        provider, settings, lambda target: resolve_credential(target, env_file), create_provider
+    )
     remember_repository(state, repository, skill.id)
     write_record(
         profile_path, _Profile(provider=settings, env_file=env_file).model_dump(mode="json")
     )
 
     def progress(current: NightSession) -> None:
+        selected = active_settings(provider, settings)
         print(
-            f"Session {current.id}: {current.calls}/{plan.max_calls} API calls",
+            f"Session {current.id}: {current.calls}/{plan.max_calls} generation calls; "
+            f"{selected.name}/{_display(selected.model)}",
             file=sys.stderr,
             flush=True,
         )
@@ -377,7 +400,16 @@ def _plan_text(plan: NightPlan) -> str:
     return (
         f"Repository: {_display(plan.repository)}\nSkill: {_display(plan.skill)}\n"
         f"Provider: {plan.provider.name} / {_display(plan.provider.model)}\n"
-        f"Mode: {plan.mode}; maximum {plan.hours:g} hours, {plan.max_calls} API calls; "
+        + (
+            "Authorized fallback order: "
+            + " -> ".join(
+                f"{entry.name}/{_display(entry.model)}" for entry in plan.provider.fallbacks
+            )
+            + f"; triggers: {', '.join(plan.provider.fallback_on)}\n"
+            if plan.provider.fallbacks
+            else ""
+        )
+        + f"Mode: {plan.mode}; maximum {plan.hours:g} hours, {plan.max_calls} API calls; "
         f"{plan.interval_seconds:g}s between cycles.\n"
         f"Approved verification: {json.dumps(plan.verification_commands)}\n"
         + (

@@ -77,10 +77,23 @@ class AuthenticationConfig(Model):
 
 
 class ProviderConfig(Model):
-    name: Literal["claude", "openai", "copilot"] = "claude"
+    name: Literal["claude", "openai", "codex", "copilot"] = "claude"
     model: Text
     max_output_tokens: Annotated[int, Field(strict=True, ge=1, le=32768)] = 4096
     timeout_seconds: Annotated[float, Field(gt=0, le=3600)] = 60
+    fallbacks: tuple["ProviderConfig", ...] = Field(default=(), max_length=3)
+    fallback_on: tuple[Literal["quota_exhausted", "rate_limited"], ...] = ("quota_exhausted",)
+
+    @model_validator(mode="after")
+    def finite_fallback_chain(self) -> "ProviderConfig":
+        chain = (self, *self.fallbacks)
+        if any(provider.fallbacks for provider in self.fallbacks):
+            raise ValueError("fallbacks must be a flat ordered list")
+        if len({(provider.name, provider.model) for provider in chain}) != len(chain):
+            raise ValueError("provider/model pairs must be unique in a fallback chain")
+        if not self.fallback_on or len(set(self.fallback_on)) != len(self.fallback_on):
+            raise ValueError("fallback_on must contain unique quota or rate-limit statuses")
+        return self
 
 
 class GitConfig(Model):

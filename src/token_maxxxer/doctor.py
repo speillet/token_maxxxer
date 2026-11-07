@@ -1,5 +1,6 @@
 """Read-only diagnostics; no inference, credential extraction or account changes."""
 
+import importlib.util
 import os
 import shutil
 import subprocess
@@ -75,14 +76,20 @@ def diagnose(config: Config) -> list[Check]:
                 )
             )
 
-    supported = config.provider.name in ("claude", "openai")
+    supported = (
+        shutil.which("codex") is not None
+        if config.provider.name == "codex"
+        else importlib.util.find_spec("copilot") is not None
+        if config.provider.name == "copilot"
+        else True
+    )
     checks.append(
         Check(
             "provider",
             "ok" if supported else "error",
             f"{config.provider.name} / {config.provider.model}"
             if supported
-            else "Copilot: SDK integration planned, adapter unavailable",
+            else f"{config.provider.name}: install its CLI/runtime before execution",
         )
     )
     configured = credential_configured(config.provider, config.authentication.env_file)
@@ -90,11 +97,25 @@ def diagnose(config: Config) -> list[Check]:
         Check(
             "credential_configuration",
             "ok" if configured else "error",
-            "key or reference configured (not resolved or authenticated)"
+            "CLI/runtime available (login and quota not authenticated)"
+            if configured and config.provider.name in ("codex", "copilot")
+            else "key or reference configured (not resolved or authenticated)"
             if configured
             else "key or reference missing for the selected provider",
         )
     )
+
+    for fallback in config.provider.fallbacks:
+        configured = credential_configured(fallback, config.authentication.env_file)
+        checks.append(
+            Check(
+                f"fallback:{fallback.name}:{fallback.model}",
+                "ok" if configured else "warning",
+                "configured; login, quota and inference not verified"
+                if configured
+                else "not configured; it will be checked only if selected",
+            )
+        )
 
     for label, path in (
         ("database", config.storage.database),

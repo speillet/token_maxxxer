@@ -1,8 +1,10 @@
 """Resolve provider credentials without exposing them or modifying the environment."""
 
+import importlib.util
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
 from collections.abc import Mapping
@@ -87,13 +89,15 @@ def credential_configured(
 ) -> bool:
     """Check configuration without retrieving a Keychain value or making a request."""
     environment = os.environ if environment is None else environment
+    if provider.name == "codex":
+        return shutil.which("codex") is not None
     if environment.get(KEY_VARIABLES[provider.name]):
         return True
     reference = _reference(provider, path, environment)
     if reference:
         _keychain_coordinates(reference)
         return True
-    return False
+    return provider.name == "copilot" and importlib.util.find_spec("copilot") is not None
 
 
 def resolve_credential(
@@ -106,10 +110,16 @@ def resolve_credential(
     if not math.isfinite(keychain_timeout_seconds) or not 0 < keychain_timeout_seconds <= 300:
         raise CredentialError("Keychain timeout must be between zero and 300 seconds")
     environment = os.environ if environment is None else environment
+    if provider.name == "codex":
+        # The official CLI owns its cached login; never extract OAuth credentials.
+        return SecretStr("")
     secret = environment.get(KEY_VARIABLES[provider.name])
     if not secret:
         reference = _reference(provider, path, environment)
         if not reference:
+            if provider.name == "copilot":
+                # The SDK handles its documented logged-in-user authentication.
+                return SecretStr("")
             raise CredentialError("API key is missing for the selected provider")
         service, account = _keychain_coordinates(reference)
         if sys.platform != "darwin":

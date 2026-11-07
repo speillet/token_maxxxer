@@ -4,11 +4,13 @@ import os
 import selectors
 import signal
 import subprocess
+import tempfile
 import time
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
+from typing import BinaryIO
 
 
 @dataclass(frozen=True)
@@ -39,13 +41,40 @@ def run_command(
     *,
     max_output_bytes: int = 262_144,
     combine_stderr: bool = False,
+    input_bytes: bytes | None = None,
+) -> CommandResult:
+    # An anonymous file avoids pipe deadlocks for large prompts and keeps them
+    # out of argv, the environment and named files/session journals.
+    with tempfile.TemporaryFile() as incoming:
+        if input_bytes is not None:
+            incoming.write(input_bytes)
+            incoming.seek(0)
+        return _run_command(
+            command,
+            root,
+            timeout,
+            environment,
+            max_output_bytes,
+            combine_stderr,
+            incoming if input_bytes is not None else subprocess.DEVNULL,
+        )
+
+
+def _run_command(
+    command: Sequence[str],
+    root: Path,
+    timeout: float,
+    environment: Mapping[str, str],
+    max_output_bytes: int,
+    combine_stderr: bool,
+    incoming: BinaryIO | int,
 ) -> CommandResult:
     try:
         process = subprocess.Popen(
             command,
             cwd=root,
             env=environment,
-            stdin=subprocess.DEVNULL,
+            stdin=incoming,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT if combine_stderr else subprocess.DEVNULL,
             start_new_session=True,

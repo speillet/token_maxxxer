@@ -1,7 +1,45 @@
 # Checkpoints — token_maxxxer
 
-Updated November 3, 2026. This file records code deliveries, validation, merge
+Updated November 7, 2026. This file records code deliveries, validation, merge
 history, and rollback points. It does not replace future workflow checkpoints.
+
+## November 7 provider fallback
+
+The branch also adds headless improvement delivery through supervised commits,
+leased pushes and session draft PRs. Its publication-only snapshot passes 263
+tests independently; GitHub effects in those tests are simulated.
+
+Added explicitly configured quota fallback with pinned models, Codex CLI login
+and an optional official Copilot SDK adapter. A failed provider response never
+executes a file action. Each fallback consumes another call slot; context,
+worktree, verification state and the existing deadline remain in place. Logs
+record provider/model attribution, classified error codes and transitions.
+Without a configured chain, failures still stop execution. Ordinary throttling
+switches only when explicitly included in `fallback_on`.
+
+Native runtimes generate text actions in an empty temporary directory. The
+supervisor retains file/check/publication ownership. Codex uses its saved login
+without OAuth extraction; Copilot resolves its own documented login or an
+explicit token. Worker stdin, subprocess timeout/cancellation and credential
+separation have simulated coverage. The detached credential-handoff test now
+uses a changed pinned commit to reject before any model access, since Copilot
+selection is no longer an unsupported operation.
+
+Operational evidence on November 7: the installed Codex CLI was already signed
+in through ChatGPT. A real adapter call returned valid JSON. A read-only night
+session on the existing local `Knowledge_AI_Engineering` checkout then recorded
+Claude `quota_exhausted`, one switch to `codex/gpt-6.1-sol`, and two successful
+Codex actions (`list_files`, `read_file`). All three attempts counted toward the
+three-call limit. The original 193 local files and Git status were unchanged.
+This establishes a real Claude-to-Codex transition; it does not establish a
+completed review, autonomous edits, GitHub publication or Copilot account access.
+Private evidence lives under `var/validation/provider-failover-smoke/`.
+
+Implementation validation: 298 automated tests pass; Ruff formatting/lint,
+strict mypy and source/wheel builds pass. The wheel includes all new runtime
+and routing modules and its optional Copilot dependency metadata. Examples
+validate against the committed lockfile. Copilot login/inference remains
+unqualified; its adapter is covered with simulated SDK clients.
 
 ## November 3 supervised pilot
 

@@ -5,7 +5,7 @@ import pytest
 from pydantic import SecretStr, ValidationError
 
 from token_maxxxer.config import ProviderConfig
-from token_maxxxer.providers import GenerationRequest, UnsupportedProviderError, create_provider
+from token_maxxxer.providers import GenerationRequest, create_provider
 
 KEY = "sk-fixture-api-key"
 
@@ -174,9 +174,69 @@ def test_unknown_openai_usage_remains_unknown() -> None:
     assert result.status == "success" and result.usage is None
 
 
-def test_copilot_does_not_claim_implementation() -> None:
-    with pytest.raises(UnsupportedProviderError, match="official SDK"):
-        create_provider(ProviderConfig(name="copilot", model="fixture-model"))
+def test_local_runtime_providers_are_created_without_processes_or_authentication(
+    monkeypatch,
+) -> None:
+    def forbidden(*args, **kwargs):
+        raise AssertionError("provider construction must remain lazy")
+
+    monkeypatch.setattr("token_maxxxer.local_providers.run_command", forbidden)
+    assert (
+        type(create_provider(ProviderConfig(name="copilot", model="fixture"))).__name__
+        == "CopilotProvider"
+    )
+    assert (
+        type(create_provider(ProviderConfig(name="codex", model="fixture"))).__name__
+        == "CodexProvider"
+    )
+
+
+@pytest.mark.parametrize(
+    "name,status,detail,expected",
+    [
+        (
+            "claude",
+            400,
+            {
+                "type": "invalid_request_error",
+                "message": (
+                    "Your credit balance is too low to access the Anthropic API. fixture-secret"
+                ),
+            },
+            "quota_exhausted",
+        ),
+        (
+            "openai",
+            429,
+            {"code": "insufficient_quota", "message": "fixture-secret"},
+            "quota_exhausted",
+        ),
+        (
+            "openai",
+            429,
+            {"code": "rate_limit_exceeded", "message": "Too many requests"},
+            "rate_limited",
+        ),
+        (
+            "claude",
+            400,
+            {"type": "invalid_request_error", "message": "Unknown model"},
+            "invalid_output",
+        ),
+        (
+            "claude",
+            401,
+            {"type": "authentication_error", "message": "insufficient credits"},
+            "auth_error",
+        ),
+    ],
+)
+def test_billing_rejections_are_distinct_from_throttling_and_bad_requests(
+    name, status, detail, expected
+):
+    result = generate(name, lambda _: httpx.Response(status, json={"error": detail}))
+    assert result.status == expected
+    assert "fixture-secret" not in result.model_dump_json()
 
 
 @pytest.mark.parametrize("case", ["refusal", "incomplete", "in_progress", "tool", "reasoning"])

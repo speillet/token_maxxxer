@@ -341,15 +341,14 @@ def test_real_detached_worker_consumes_pipe_without_keychain_or_network(
     now = datetime.now(UTC)
     request["starts_at"] = now.isoformat()
     request["ends_at"] = (now + timedelta(minutes=5)).isoformat()
-    # Copilot is recognized but rejected before network access, making the real
-    # child process safe to exercise with a fictional credential.
-    request["plan"]["provider"]["name"] = "copilot"
+    # Fail after consuming the credential pipe but before any provider access.
+    request["base_commit"] = "0" * 40
     write_record(launch_request, request)
     pid = launcher._detach(launch_request, SecretStr("sk-fixture-private-value"))
     _, status = os.waitpid(pid, 0)
     assert os.waitstatus_to_exitcode(status) == 1
     recorded = (launch_request.parent / "status.json").read_text()
-    assert json.loads(recorded)["exception"] == "UnsupportedProviderError"
+    assert json.loads(recorded)["exception"] == "ValueError"
     assert "sk-fixture-private-value" not in recorded
     assert "sk-fixture-private-value" not in (launch_request.parent / "worker.log").read_text()
 

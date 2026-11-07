@@ -20,6 +20,7 @@ from token_maxxxer.file_tools import FileTools
 from token_maxxxer.json_io import load_unique_json
 from token_maxxxer.local_state import read_record, write_private_text, write_record
 from token_maxxxer.models import CommandArgument, Model, utc_now
+from token_maxxxer.provider_routing import active_settings, advance_provider
 from token_maxxxer.providers import GenerationRequest, Provider
 from token_maxxxer.publication import (
     PublicationConfig,
@@ -496,6 +497,8 @@ def _loop(
         )
         session.calls += 1
         event: dict[str, object] = {"call": session.calls, "state": "requesting"}
+        selected = active_settings(provider, plan.provider)
+        event.update(provider=selected.name, model=selected.model)
         session.events.append(event)
         _save(session, directory)
         if clock() >= deadline:
@@ -504,6 +507,8 @@ def _loop(
             break
         result = provider.generate(request, credential)
         event["state"] = result.status
+        if result.error_code:
+            event["error_code"] = result.error_code
         if progress:
             progress(session)
         if (
@@ -520,6 +525,25 @@ def _loop(
             session.reason = "deadline_reached"
             break
         if result.status != "success":
+            if (
+                session.calls < plan.max_calls
+                and clock() < deadline
+                and advance_provider(provider, result)
+            ):
+                following = active_settings(provider, plan.provider)
+                session.events.append(
+                    {
+                        "type": "provider_switch",
+                        "from": selected.name,
+                        "to": following.name,
+                        "model": following.model,
+                        "reason": result.status,
+                    }
+                )
+                _save(session, directory)
+                if progress:
+                    progress(session)
+                continue
             session.state, session.reason = "failed", result.status
             return
         try:

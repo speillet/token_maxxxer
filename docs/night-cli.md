@@ -1,8 +1,10 @@
 # Interactive overnight skills
 
 `token_maxxxer` runs a selected skill against a local Git repository for a bounded
-time. Edits happen in an isolated worktree and always need human review; nothing
-is committed, pushed or merged automatically.
+time. Edits happen in an isolated worktree and always need human review. By
+default, sessions retain local work without commits or pushes. `improve` and
+`night --publish-pr` explicitly enable supervised draft-PR delivery; see the
+[publication guide](headless-pr-agent.md). No session merges automatically.
 
 ## Start a session
 
@@ -65,8 +67,9 @@ running.
 
 ## Execution contract
 
-- Claude and OpenAI share the existing provider interface. Copilot remains
-  explicitly unsupported. Provider errors stop the session without fallback.
+- Claude/OpenAI APIs, Codex CLI and the optional Copilot SDK share the provider
+  interface. Provider errors stop the session
+  unless a configured fallback explicitly authorizes that quota/rate-limit status.
 - Review mode exposes bounded, redacted reads of eligible tracked text files.
 - Edit mode requires a clean repository and creates a unique
   `token_maxxxer/night-*` branch and worktree from the recorded HEAD. All writes
@@ -114,6 +117,14 @@ limitation.
 
 ## Cycles and limits
 
+Configure an authorized fallback with `--fallback codex:MODEL` or repeated
+`--fallback PROVIDER:MODEL` flags. Quota exhaustion selects the next configured
+provider and keeps the same context/worktree. Each rejected request and each
+fallback attempt consumes one call slot; the deadline never resets. The journal
+records provider/model attribution and transitions. Authentication errors,
+timeouts and invalid responses do not switch providers. See [providers](providers.md)
+for YAML configuration and Copilot installation/authentication.
+
 The skill repeats only while it reports remaining useful work, pausing 60 seconds
 between cycles (`--interval` changes that delay). It stops early when done; no
 empty work is invented to consume tokens. The session stops at completion, its
@@ -121,7 +132,8 @@ deadline, its call limit, repeated tool denials, an API error, or an interrupt.
 
 The default ceiling is eight hours and 100 calls. Reported token usage is
 observed, not a price cap, and these limits do not guarantee an exact cost.
-Authentication and quota errors stop execution without provider fallback.
+Authentication errors stop execution. Quota errors stop when no authorized
+fallback remains or when the call/deadline limit prevents another attempt.
 
 ## State, records and reports
 

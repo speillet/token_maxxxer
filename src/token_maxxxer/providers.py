@@ -10,6 +10,7 @@ from pydantic import Field, SecretStr, field_validator
 
 from token_maxxxer.config import ProviderConfig
 from token_maxxxer.models import Model, UsageObservation, utc_now
+from token_maxxxer.provider_errors import classify_failure
 from token_maxxxer.results import GenerationResult, GenerationStatus
 
 MAX_PROMPT_CHARACTERS = 1_048_576
@@ -31,10 +32,6 @@ class Provider(Protocol):
     def generate(self, request: GenerationRequest, credential: SecretStr) -> GenerationResult: ...
 
 
-class UnsupportedProviderError(ValueError):
-    """A provider is recognized but has not been integrated yet."""
-
-
 def _api_failure(error: Exception, started: float) -> GenerationResult:
     status: GenerationStatus = "invalid_output"
     code = "invalid_api_response"
@@ -43,6 +40,18 @@ def _api_failure(error: Exception, started: float) -> GenerationResult:
     elif isinstance(error, (anthropic.APIConnectionError, openai.APIConnectionError)):
         status, code = "transient_error", "api_connection_failed"
     elif isinstance(error, (anthropic.APIStatusError, openai.APIStatusError)):
+        body = error.body
+        detail = body.get("error", body) if isinstance(body, dict) else {}
+        if isinstance(detail, dict):
+            classified, _ = classify_failure(
+                detail.get("code", detail.get("type")), detail.get("message"), error.status_code
+            )
+            if classified == "quota_exhausted":
+                return GenerationResult(
+                    status=classified,
+                    error_code="api_quota_exhausted",
+                    duration_seconds=time.monotonic() - started,
+                )
         if error.status_code in (401, 403):
             status, code = "auth_error", "api_authentication_failed"
         elif error.status_code == 429:
@@ -173,6 +182,8 @@ def create_provider(
         return AnthropicProvider(transport)
     if settings.name == "openai":
         return OpenAIProvider(transport)
-    raise UnsupportedProviderError(
-        "Copilot requires its official SDK and an authorized GitHub token; adapter unavailable"
-    )
+    if settings.name in ("codex", "copilot"):
+        from token_maxxxer.local_providers import CodexProvider, CopilotProvider
+
+        return CodexProvider() if settings.name == "codex" else CopilotProvider()
+    raise ValueError("unsupported provider")

@@ -21,6 +21,11 @@ dependencies = [
 [project.scripts]
 token_maxxxer = "token_maxxxer.cli:main"
 
+[project.optional-dependencies]
+copilot = [
+    "github-copilot-sdk>=1.0.28,<2",
+]
+
 [dependency-groups]
 dev = [
   "mypy>=1.15,<2",

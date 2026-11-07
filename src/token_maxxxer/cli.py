@@ -12,6 +12,7 @@ from token_maxxxer.credentials import resolve_credential
 from token_maxxxer.doctor import checks_as_dicts, diagnose
 from token_maxxxer.night_cli import add_commands
 from token_maxxxer.night_cli import execute as execute_night_command
+from token_maxxxer.provider_routing import generate_query, with_fallbacks
 from token_maxxxer.providers import MAX_PROMPT_CHARACTERS, GenerationRequest, create_provider
 from token_maxxxer.queue import import_document, preview_next
 from token_maxxxer.redaction import redact
@@ -66,7 +67,13 @@ def _execute(arguments: argparse.Namespace) -> int:
         request = GenerationRequest(prompt=prompt, settings=config.provider)
         provider = create_provider(config.provider)
         credential = resolve_credential(config.provider, config.authentication.env_file)
-        result = provider.generate(request, credential)
+        provider = with_fallbacks(
+            provider,
+            config.provider,
+            lambda settings: resolve_credential(settings, config.authentication.env_file),
+            create_provider,
+        )
+        result = generate_query(provider, request, credential)
         if arguments.json:
             print(result.model_dump_json())
         elif result.status == "success":
