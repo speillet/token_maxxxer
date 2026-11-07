@@ -98,6 +98,7 @@ class Attempt(Model):
         "running",
         "success",
         "rate_limited",
+        "quota_exhausted",
         "auth_error",
         "timeout",
         "transient_error",

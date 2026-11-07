@@ -1,0 +1,27 @@
+# Each entry authorizes another provider/account. Verify model access separately.
+timezone: Europe/Paris
+provider:
+  name: claude
+  model: claude-sonnet-5-5
+  max_output_tokens: 4096
+  timeout_seconds: 60
+  fallback_on: [quota_exhausted]
+  fallbacks:
+    - name: codex
+      model: gpt-6.1-sol
+    - name: copilot
+      model: gpt-6-astra
+schedule:
+  windows:
+    - days: [mon, tue, wed, thu, fri, sat, sun]
+      start: '22:00'
+      end: '07:00'
+repositories:
+  allowed: [..]
+authentication:
+  mode: api_key
+  env_file: ../.env
+storage:
+  database: ../var/token_maxxxer.sqlite
+  checkpoints: ../var/checkpoints.sqlite
+  reports: ../var/reports

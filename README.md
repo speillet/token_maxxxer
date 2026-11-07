@@ -4,8 +4,8 @@ Run bounded AI coding skills on your local repositories overnight: isolated Git
 worktrees, approved checks, Claude/OpenAI APIs, nothing merged automatically.
 
 The repository, Python package, and command are named `token_maxxxer`.
-Python 3.11+, macOS and Linux. Providers: **Claude API**, **OpenAI API**, and a
-planned **GitHub Copilot SDK** integration. See the [documentation](#documentation).
+Python 3.11+, macOS and Linux. Providers: **Claude API**, **OpenAI API**,
+**Codex CLI**, and the optional **GitHub Copilot SDK**. See the [documentation](#documentation).
 
 ## Current capabilities
 
@@ -19,7 +19,9 @@ planned **GitHub Copilot SDK** integration. See the [documentation](#documentati
 | Interactive repository picker and recent local-path history | Available |
 | Repository/user skills and built-in code review/improvement | Available |
 | Bounded overnight skill sessions in isolated Git worktrees | Available; approved checks, reports, no automatic merge |
-| GitHub Copilot | Planned; selecting it returns an explicit unsupported-provider error |
+| Headless draft-PR delivery | `improve` or `night --publish-pr`; verified cycles, supervised commit/push, no automatic merge |
+| Codex CLI / GitHub Copilot SDK | Text-action adapters using native authentication; Copilot requires its optional extra |
+| Explicit provider fallback on exhausted credits | Configured order, preserved context, shared call/deadline limits |
 | Execution of imported queue tasks | Planned; queue previews remain read-only |
 | Durable workflow, scheduling, and system services | Planned |
 
@@ -82,7 +84,8 @@ install a recurring service or implement durable resume.
 ## Select a provider
 
 The complete example is [examples/token_maxxxer.yaml](examples/token_maxxxer.yaml).
-A model is required. The application never substitutes a model or provider.
+A model is required. Another provider/model is used only when explicitly listed
+as an authorized fallback.
 
 ```yaml
 provider:
@@ -108,8 +111,21 @@ provider:
 
 Model identifiers are configurable examples; verify access in your provider
 account. An API key uses that account's API allocation. The output-token limit
-does not guarantee an exact financial budget. Neither adapter retries
-requests automatically or falls back to another provider after an error.
+does not guarantee an exact financial budget. API adapters do not retry requests
+automatically. Exhausted quota can select an explicitly authorized fallback:
+
+```bash
+uv run token_maxxxer night /path/to/clean-repo \
+  --provider claude --model claude-sonnet-5-5 \
+  --fallback codex:gpt-6.1-sol --yes
+```
+
+Codex reuses `codex login`, including ChatGPT sign-in. Install Copilot support
+with `uv sync --locked --extra copilot`, then authorize it with another
+`--fallback copilot:MODEL`. See the [fallback example](examples/provider-fallbacks.yaml)
+and [provider guide](docs/providers.md) for credentials, order and limits.
+Edit sessions still require a clean local checkout; provider fallback does not
+snapshot uncommitted source work.
 
 ## Keep credentials outside Git
 
@@ -185,11 +201,15 @@ src/token_maxxxer/
 ├── config.py, models.py       # validated configuration and domain data
 ├── credentials.py            # private references and on-demand resolution
 ├── providers.py              # Provider, Claude Messages, OpenAI Responses
+├── provider_routing.py        # explicit quota fallback and per-attempt selection
+├── local_providers.py         # Codex CLI and isolated Copilot SDK worker adapter
 ├── results.py                # shared generation results and public diagnostics
 ├── queue.py, storage.py       # atomic imports and versioned SQLite
 ├── cli.py, doctor.py          # user commands and read-only diagnostics
 ├── repositories.py, skills.py # local discovery, recent paths and skill instructions
 ├── night.py, night_cli.py     # isolated overnight sessions and interactive selection
+├── publication.py            # supervised commit, push and draft-PR delivery
+├── commands.py               # bounded subprocesses and private runtime input
 ├── file_tools.py              # bounded file operations in the selected worktree
 ├── verification.py            # approved commands and process-group cancellation
 ├── local_state.py             # private atomic history and session records
@@ -201,10 +221,10 @@ durable workflow is implemented, rather than kept as unused dependencies. The
 application database and future workflow checkpoints have separate configured
 locations.
 
-Copilot will use the same `Provider` interface with its official SDK and GitHub
-authentication. `provider.name: copilot` is recognized but rejected until that
-adapter is implemented. No private Copilot endpoint or implicit reuse of `gh`
-credentials is used.
+Codex and Copilot use the same text `Provider` interface. Their own tools are
+disabled; the supervisor controls file access, verification and publication.
+Authentication stays in the official CLI/SDK. No private inference endpoint or
+OAuth credential extraction is used.
 
 ## Development
 
@@ -227,6 +247,7 @@ may use any language.
 | --- | --- |
 | [docs/night-cli.md](docs/night-cli.md) | Overnight sessions: picker, explicit invocation, tool scope, limits, records and review |
 | [docs/providers.md](docs/providers.md) | Provider contract, result statuses, credentials and official API references |
+| [docs/headless-pr-agent.md](docs/headless-pr-agent.md) | Headless delivery, verification and draft-PR publication |
 | [docs/roadmap.md](docs/roadmap.md) | Milestones and remaining work |
 | [docs/checkpoint.md](docs/checkpoint.md) | Delivery history, rollback points, procedure and prototype migration |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development standards, checks, pull requests and rollbacks |

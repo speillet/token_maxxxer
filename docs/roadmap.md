@@ -1,8 +1,8 @@
 # Roadmap — token_maxxxer
 
-Updated November 2, 2026. `token_maxxxer` uses explicit API credentials: Claude
-first, OpenAI through the same provider contract, and a planned GitHub Copilot
-SDK integration. This replaces the initial subscription-only CLI design.
+Updated November 7, 2026. `token_maxxxer` supports Claude/OpenAI APIs, Codex CLI
+login and the optional official Copilot SDK. Explicit fallback chains preserve
+context and session limits across exhausted provider allocations.
 Progress, merge history, and rollback points live in [checkpoint.md](checkpoint.md).
 
 ## 0 — Provider contracts and account access
@@ -32,14 +32,15 @@ real account permissions, quotas, or costs.
 - [x] Claude: official SDK, API keys, text prompts, and usage observations.
 - [x] OpenAI: official Responses SDK with response storage disabled in the request.
 - [x] An explicit query command without local code execution or task mutations.
-- [x] HTTP timeouts, output-token limits, and no automatic retries or fallback.
+- [x] API HTTP timeouts, output-token limits, and no automatic SDK retries.
 - [x] Classify authentication, quota, timeout, network, and incomplete-output failures.
 - [x] Resolve private Keychain references or process keys only when needed.
 - [x] Test simulated HTTP without real AI API calls.
-- [ ] Add the GitHub Copilot adapter behind the same provider interface.
+- [x] Add Codex CLI and optional GitHub Copilot SDK text adapters.
+- [x] Add explicitly authorized quota fallback with shared call/deadline limits.
 
 A completed generation does not verify a development task. Model settings are
-explicit and an error never switches the selected provider.
+explicit. Switching is limited to an explicitly authorized fallback chain.
 
 ## 3 — Code agent, Git isolation, and verification
 
@@ -64,7 +65,9 @@ explicit and an error never switches the selected provider.
 - [x] Stop on deadline, signals, call limit, completion or provider failure.
 
 `night` starts immediately in the foreground and marks edited work as needing
-review. It never commits, pushes or merges selected-repository changes. The
+review. Its default delivery stays local; `improve` and `night --publish-pr`
+explicitly enable supervised commit/push/draft-PR delivery. Nothing merges
+automatically. The
 original queue's stable task branches and acceptance workflow remain separate
 work. Skills use the supported typed tools; external plugins and arbitrary shell
 commands are not installed or executed. See [the session contract](night-cli.md).

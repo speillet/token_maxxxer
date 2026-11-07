@@ -14,8 +14,9 @@ uv build --no-sources
 ## Development standards
 
 - Keep routing deterministic and provider integrations behind `Provider`.
-  Claude and OpenAI use their official APIs; Copilot will use its official SDK
-  and authorized GitHub credentials.
+  Claude and OpenAI use their official APIs, Codex its official CLI, and Copilot
+  its official SDK. Provider/model fallback must be explicitly authorized and
+  preserve deadline, call-count and journal guarantees.
 - Validate configuration and task input with Pydantic. Reject unknown fields
   and repository paths that are not explicitly allowed.
   An explicit night-session selection grants access to that repository for

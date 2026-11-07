@@ -26,6 +26,7 @@ from token_maxxxer.credentials import KEY_VARIABLES, resolve_credential
 from token_maxxxer.local_state import read_record, write_record
 from token_maxxxer.models import Model, UtcDatetime, utc_now
 from token_maxxxer.night import NightPlan, NightSession, NightWindowClosed, run_night
+from token_maxxxer.provider_routing import with_fallbacks
 from token_maxxxer.providers import create_provider
 from token_maxxxer.repositories import git
 from token_maxxxer.skills import load_skill
@@ -109,6 +110,12 @@ def run_once(
             credential = resolve_credential(
                 request.plan.provider, request.env_file, keychain_timeout_seconds=120
             )
+        provider = with_fallbacks(
+            provider,
+            request.plan.provider,
+            lambda target: resolve_credential(target, request.env_file),
+            create_provider,
+        )
         if request.keep_awake:
             if sys.platform != "darwin":
                 raise ValueError("keep_awake requires macOS caffeinate")
@@ -176,6 +183,8 @@ def run_once(
 
 
 def _input_credential(request: OneShotRequest, value: str) -> SecretStr:
+    if request.plan.provider.name == "codex":
+        raise ValueError("Codex uses its existing CLI login; do not supply an API key here")
     if not value:
         raise ValueError("no API key supplied")
     return resolve_credential(
