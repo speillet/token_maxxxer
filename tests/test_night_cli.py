@@ -129,7 +129,7 @@ def test_interactive_wizard_selects_repository_skill_and_remembers_profile(
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    answers = iter([str(repository), "", "", "fixture-model", "1", "2", "", "yes"])
+    answers = iter([str(repository), "", "", "fixture-model", "1", "2", "", "local", "yes"])
     monkeypatch.setattr("builtins.input", lambda _: next(answers))
 
     class FakeProvider:

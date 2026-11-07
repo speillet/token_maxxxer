@@ -21,6 +21,7 @@ from token_maxxxer.night import (
     run_night,
 )
 from token_maxxxer.providers import create_provider
+from token_maxxxer.publication import Publisher, publication_config
 from token_maxxxer.redaction import redact
 from token_maxxxer.repositories import (
     git,
@@ -52,28 +53,48 @@ def add_commands(
     sessions = commands.add_parser("sessions", help="inspect saved overnight sessions")
     sessions.add_argument("id", nargs="?")
     sessions.add_argument("--json", action="store_true")
-    night = commands.add_parser("night", help="repeat a skill in an isolated worktree")
-    night.add_argument("repository", nargs="?", help="local repository path or file:// URL")
-    night.add_argument("--skill", default="auto", help="skill ID, name, SKILL.md path, or auto")
-    night.add_argument("--mode", choices=("edit", "review"), default="edit")
-    night.add_argument("--hours", type=float, default=8)
-    night.add_argument("--max-calls", type=int, default=100)
-    night.add_argument("--interval", type=float, default=60, help="seconds between skill cycles")
-    night.add_argument("--provider", choices=("claude", "openai", "copilot"))
-    night.add_argument("--model", help="explicit provider model ID")
-    night.add_argument("--env-file", type=Path, help="private credential-reference file")
-    night.add_argument(
-        "--verify",
-        action="append",
-        default=[],
-        help="approved verification command; quote arguments, no shell is used",
-    )
-    night.add_argument("--verification-timeout", type=float, default=300)
-    night.add_argument("--dry-run", action="store_true", help="preview without files or API access")
-    night.add_argument(
-        "--yes", action="store_true", help="start without an interactive confirmation"
-    )
-    night.add_argument("--json", action="store_true")
+    for command_name in ("night", "improve"):
+        night = commands.add_parser(
+            command_name,
+            help=(
+                "improve a repository through a draft PR"
+                if command_name == "improve"
+                else "repeat a skill in an isolated worktree"
+            ),
+        )
+        night.set_defaults(publish_pr=command_name == "improve")
+        night.add_argument("repository", nargs="?", help="local repository path or file:// URL")
+        night.add_argument("--skill", default="auto", help="skill ID, name, SKILL.md path, or auto")
+        night.add_argument("--mode", choices=("edit", "review"), default="edit")
+        night.add_argument("--hours", type=float, default=8)
+        night.add_argument("--max-calls", type=int, default=100)
+        night.add_argument(
+            "--interval", type=float, default=60, help="seconds between skill cycles"
+        )
+        night.add_argument("--provider", choices=("claude", "openai", "copilot"))
+        night.add_argument("--model", help="explicit provider model ID")
+        night.add_argument("--env-file", type=Path, help="private credential-reference file")
+        night.add_argument(
+            "--verify",
+            action="append",
+            default=[],
+            help="approved verification command; quote arguments, no shell is used",
+        )
+        night.add_argument("--verification-timeout", type=float, default=300)
+        night.add_argument(
+            "--dry-run", action="store_true", help="preview without files or API access"
+        )
+        night.add_argument(
+            "--yes", "--headless", action="store_true", help="run without interactive prompts"
+        )
+        night.add_argument("--json", action="store_true")
+
+        night.add_argument(
+            "--publish-pr", action="store_true", help="commit verified cycles and open a draft PR"
+        )
+        night.add_argument(
+            "--base", help="remote GitHub base branch (defaults to cached origin/HEAD)"
+        )
 
 
 def _display(value: str | Path) -> str:
@@ -192,8 +213,14 @@ def execute(arguments: argparse.Namespace) -> int:
 
 
 def _night(arguments: argparse.Namespace, config: Config | None, state: Path) -> int:
-    interactive = sys.stdin.isatty() and sys.stdout.isatty()
-    wizard = arguments.command is None
+    interactive = (
+        sys.stdin.isatty() and sys.stdout.isatty() and not getattr(arguments, "yes", False)
+    )
+    wizard = arguments.command is None or (
+        arguments.command == "improve"
+        and not getattr(arguments, "repository", None)
+        and interactive
+    )
     if wizard and not interactive:
         raise ValueError(
             "interactive selection requires a terminal; use night PATH --model MODEL --yes"
@@ -209,7 +236,11 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
         "review" if getattr(arguments, "mode", "edit") == "review" else "edit"
     )
     skills = discover_skills(repository)
-    suggested = select_skill(skills, getattr(arguments, "skill", "auto"), mode=mode)
+    publish_pr = getattr(arguments, "publish_pr", False)
+    selector = getattr(arguments, "skill", "auto")
+    if publish_pr and selector == "auto":
+        selector = "builtin:improve-code"
+    suggested = select_skill(skills, selector, mode=mode)
     if wizard:
         previous = next(
             (entry.skill for entry in load_history(state).repositories if entry.path == repository),
@@ -261,6 +292,17 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
         check = _input("Optional verification command (no shell operators)")
         if check:
             verification.append(shlex.split(check))
+        delivery = _input("Delivery (local or draft-pr)", "draft-pr" if publish_pr else "local")
+        if delivery not in ("local", "draft-pr"):
+            raise ValueError("choose local or draft-pr delivery")
+        publish_pr = delivery == "draft-pr"
+        if publish_pr and not verification:
+            verification.append(
+                shlex.split(_input("Verification command required for PR delivery"))
+            )
+    publication = (
+        publication_config(repository, getattr(arguments, "base", None)) if publish_pr else None
+    )
     plan = NightPlan(
         repository=repository,
         skill=skill.id,
@@ -271,6 +313,7 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
         interval_seconds=getattr(arguments, "interval", 60),
         verification_commands=tuple(tuple(command) for command in verification),
         verification_timeout_seconds=getattr(arguments, "verification_timeout", 300),
+        publication=publication,
     )
     if state.is_relative_to(repository):
         raise ValueError("--state-dir must be outside the selected repository")
@@ -293,10 +336,16 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
         ):
             print("Session cancelled. Nothing was launched.")
             return 0
-    if mode == "edit" and git(repository, "status", "--porcelain=v1", "-z"):
+    if (
+        mode == "edit"
+        and not plan.publication
+        and git(repository, "status", "--porcelain=v1", "-z")
+    ):
         raise ValueError(
             "edit mode requires a clean repository; commit or save existing work first"
         )
+    if plan.publication:
+        Publisher(plan.publication, repository).preflight()
     provider = create_provider(settings)
     credential = resolve_credential(settings, env_file)
     remember_repository(state, repository, skill.id)
@@ -319,6 +368,8 @@ def _night(arguments: argparse.Namespace, config: Config | None, state: Path) ->
         print(f"Report: {state / 'runs' / session.id / 'report.md'}")
         if session.worktree:
             print(f"Inspect changes: git -C {shlex.quote(str(session.worktree))} diff")
+        if session.publication and session.publication.pr_url:
+            print(f"Draft PR: {session.publication.pr_url}")
     return 130 if session.state == "interrupted" else 1 if session.state == "failed" else 0
 
 
@@ -329,6 +380,12 @@ def _plan_text(plan: NightPlan) -> str:
         f"Mode: {plan.mode}; maximum {plan.hours:g} hours, {plan.max_calls} API calls; "
         f"{plan.interval_seconds:g}s between cycles.\n"
         f"Approved verification: {json.dumps(plan.verification_commands)}\n"
-        "Eligible repository text is sent to the selected provider. "
+        + (
+            f"Delivery: draft PR to {plan.publication.repository} "
+            f"/ {plan.publication.base_branch}\n"
+            if plan.publication
+            else "Delivery: local worktree\n"
+        )
+        + "Eligible repository text is sent to the selected provider. "
         "Edits stay in an isolated worktree for review. The terminal must remain open."
     )

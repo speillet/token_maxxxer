@@ -51,7 +51,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _execute(arguments: argparse.Namespace) -> int:
-    if arguments.command in (None, "night", "repos", "skills", "sessions"):
+    if arguments.command in (None, "night", "improve", "repos", "skills", "sessions"):
         return execute_night_command(arguments)
     config = load_config(arguments.config or Path("token_maxxxer.yaml"))
     store = TaskStore(config.storage.database)

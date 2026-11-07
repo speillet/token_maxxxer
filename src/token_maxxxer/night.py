@@ -21,6 +21,12 @@ from token_maxxxer.json_io import load_unique_json
 from token_maxxxer.local_state import read_record, write_private_text, write_record
 from token_maxxxer.models import CommandArgument, Model, utc_now
 from token_maxxxer.providers import GenerationRequest, Provider
+from token_maxxxer.publication import (
+    PublicationConfig,
+    PublicationError,
+    PublicationRecord,
+    Publisher,
+)
 from token_maxxxer.redaction import redact
 from token_maxxxer.repositories import git, repository_root
 from token_maxxxer.skills import Skill
@@ -39,6 +45,7 @@ class NightPlan(Model):
     verification_commands: tuple[
         Annotated[tuple[CommandArgument, ...], Field(min_length=1)], ...
     ] = ()
+    publication: PublicationConfig | None = None
 
     @field_validator("verification_commands")
     @classmethod
@@ -79,6 +86,8 @@ class NightPlan(Model):
     def review_runs_no_commands(self) -> "NightPlan":
         if self.mode == "review" and self.verification_commands:
             raise ValueError("review mode does not execute verification commands")
+        if self.publication and (self.mode != "edit" or not self.verification_commands):
+            raise ValueError("PR publication requires edit mode and approved verification commands")
         return self
 
 
@@ -140,6 +149,7 @@ class NightSession(Model):
     summaries: list[str] = Field(default_factory=list)
     events: list[dict[str, object]] = Field(default_factory=list)
     verification: list[dict[str, object]] = Field(default_factory=list)
+    publication: PublicationRecord | None = None
 
 
 class _DeadlineReached(BaseException):
@@ -241,7 +251,9 @@ def _report(session: NightSession, directory: Path) -> None:
                 "",
                 f"Branch: {session.branch}",
                 f"Worktree: {session.worktree}",
-                "Outcome: needs_review. Changes have not been merged, pushed or committed.",
+                "Outcome: needs_review. Inspect the publication record below for delivery state."
+                if session.publication
+                else "Outcome: needs_review. Changes have not been merged, pushed or committed.",
                 "Inspect Git status/diff, run checks, then commit selected changes.",
                 "To discard it, back up unverified work first, then remove that worktree",
                 "and its branch with Git. The recorded base commit is the rollback reference.",
@@ -254,6 +266,8 @@ def _report(session: NightSession, directory: Path) -> None:
     lines.extend(
         ["", "## Verification", "", json.dumps(session.verification, ensure_ascii=True, indent=2)]
     )
+    if session.publication:
+        lines.extend(["", "## Publication", "", session.publication.model_dump_json(indent=2)])
     path = directory / "report.md"
     # The report is derived from the atomic session record and contains no prompts or raw responses.
     write_private_text(path, "\n".join(redact(line) for line in lines) + "\n")
@@ -286,7 +300,14 @@ def _prompt(
         "Finish each cycle with evidence and continue_work=true only for remaining useful work. "
         "Stop when done; do not invent work to consume tokens. "
         "If the skill requires unavailable capabilities, explain that and finish.\n"
-        f"Mode: {plan.mode}.\nApproved checks: {json.dumps(plan.verification_commands)}\n"
+        + (
+            "This is a headless PR session. Work autonomously. Run approved checks before "
+            "finishing each coherent improvement batch. The supervisor commits/publishes "
+            "only verified files; never claim a PR was opened yourself.\n"
+            if plan.publication
+            else ""
+        )
+        + f"Mode: {plan.mode}.\nApproved checks: {json.dumps(plan.verification_commands)}\n"
         f"Action schema: {json.dumps(AgentAction.model_json_schema())}\n"
         f"Selected skill {skill.id}:\n{redact(skill.instructions)}\n"
         f"Repository instructions:\n{instructions}\n"
@@ -311,7 +332,11 @@ def run_night(
     if stop_at is not None and not math.isfinite(stop_at):
         raise ValueError("the absolute closing deadline must be finite")
     repository = repository_root(plan.repository)
-    if plan.mode == "edit" and git(repository, "status", "--porcelain=v1", "-z"):
+    if (
+        plan.mode == "edit"
+        and not plan.publication
+        and git(repository, "status", "--porcelain=v1", "-z")
+    ):
         raise ValueError(
             "edit mode requires a clean repository; commit or save existing work first"
         )
@@ -333,6 +358,7 @@ def run_night(
         plan=plan,
         started_at=utc_now().isoformat(),
         base_commit=git(repository, "rev-parse", "--verify", "HEAD").strip(),
+        publication=PublicationRecord() if plan.publication else None,
     )
     tools: FileTools | None = None
     with _repository_lock(repository):
@@ -341,6 +367,14 @@ def run_night(
         try:
             with _signals(max(0.001, deadline - clock())):
                 root = repository
+                publisher = None
+                if plan.publication:
+                    publisher = Publisher(
+                        plan.publication, repository, deadline=deadline, clock=clock
+                    )
+                    publisher.preflight()
+                    session.base_commit = publisher.fetch_base(identifier)
+                    _save(session, directory)
                 if plan.mode == "edit":
                     session.branch = f"token_maxxxer/night-{identifier}"
                     session.worktree = directory / "worktree"
@@ -356,6 +390,8 @@ def run_night(
                         timeout=60,
                     )
                     root = session.worktree
+                    if publisher:
+                        publisher.root = root
                 session.state = "running"
                 _save(session, directory)
                 if progress:
@@ -382,7 +418,10 @@ def run_night(
                     clock,
                     sleep,
                     progress,
+                    publisher,
                 )
+        except PublicationError as error:
+            session.state, session.reason = "failed", str(error)
         except _DeadlineReached:
             session.state, session.reason = "completed", "deadline_reached"
         except KeyboardInterrupt:
@@ -413,6 +452,7 @@ def _loop(
     clock: Callable[[], float],
     sleep: Callable[[float], None],
     progress: Callable[[NightSession], None] | None,
+    publisher: Publisher | None,
 ) -> None:
     transcript: list[dict[str, object]] = []
     denied = 0
@@ -503,16 +543,35 @@ def _loop(
             elif isinstance(action, RunChecks):
                 observation = checks()
             else:
+                results = None
                 if (
                     tools.changed
                     and plan.verification_commands
-                    and checked_version != tools.write_version
+                    and (publisher is not None or checked_version != tools.write_version)
                 ):
-                    checks()
+                    results = checks()
                 summary = redact(action.summary)
                 session.summaries.append(summary)
                 session.summaries = session.summaries[-50:]
                 _save(session, directory)
+                if publisher is not None and tools.changed:
+                    if not results or any(result["status"] != "passed" for result in results):
+                        session.state, session.reason = "failed", "verification_failed"
+                        return
+                    assert session.publication is not None and session.branch is not None
+                    try:
+                        publisher.publish(
+                            session.branch,
+                            tools.changed,
+                            skill.name,
+                            session.summaries,
+                            session.publication,
+                            directory,
+                            lambda: _save(session, directory),
+                        )
+                    except PublicationError as error:
+                        session.state, session.reason = "failed", str(error)
+                        return
                 if not action.continue_work:
                     session.reason = "skill_completed"
                     break
