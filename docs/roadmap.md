@@ -1,6 +1,6 @@
 # Roadmap — token_maxxxer
 
-Updated November 7, 2026. `token_maxxxer` supports Claude/OpenAI APIs, Codex CLI
+Updated November 20, 2026. `token_maxxxer` supports Claude/OpenAI APIs, Codex CLI
 login and the optional official Copilot SDK. Explicit fallback chains preserve
 context and session limits across exhausted provider allocations.
 Progress, merge history, and rollback points live in [checkpoint.md](checkpoint.md).
@@ -74,7 +74,8 @@ commands are not installed or executed. See [the session contract](night-cli.md)
 
 ## 4 — Durable workflow and recovery
 
-- [ ] Install LangGraph, LangChain Core, and the compatible checkpointer when implementing this milestone.
+- [x] Use LangGraph for native headless skill supervision: prepare, baseline, execute, verify and record.
+- [ ] Add a compatible durable checkpointer when implementing workflow resume.
 - [ ] Add deterministic selection, preparation, execution, verification, classification, and reporting nodes.
 - [ ] Use a SQLite checkpointer, stable thread IDs, and a versioned state schema.
 - [ ] Journal attempts before external effects and persist results immediately.
@@ -88,6 +89,7 @@ workflow replay, durable resume or automatic crash recovery.
 
 ## 5 — Scheduling, quota handling, and budgets
 
+- [x] Add daily launchd/cron jobs for native headless skills, IANA start windows, exclusive daily attempts and subject rotation.
 - [ ] Implement half-open IANA windows, midnight crossing, overlap merging, and DST.
 - [ ] Check before launch and maintain a watchdog through closing, including shutdown grace.
 - [ ] Pause on quota with a reliable reset or bounded backoff, never rapid retries.
@@ -100,10 +102,16 @@ workflow replay, durable resume or automatic crash recovery.
 A tested one-shot helper can already hold an explicitly resolved credential
 in memory, wait for a single absolute window and run under a local supervisor.
 It prevents replay and reports readiness; the macOS pilot uses a private
-`launchd` job. Recurring service installation and durable recovery remain open.
+`launchd` job. Durable recovery remains open.
 See [one supervised night](one-shot-night.md).
 
-- [ ] Add user launchd and systemd services with explicit environments.
+Daily native skill jobs can now be installed, inspected and removed through
+`headless launchd` or `headless cron`. They retain verified local commits in a
+persistent review worktree. They do not implement automatic recovery or a systemd service.
+See [daily headless jobs](headless-skill-jobs.md).
+
+- [x] Add user launchd service lifecycle with an explicit environment for native skill jobs.
+- [ ] Add systemd services.
 - [ ] Resolve credentials without silent background authentication prompts.
 - [ ] Support clean installation, start, stop, inspection, and removal.
 - [ ] Produce Markdown reports and rotating JSONL logs with secret checks.

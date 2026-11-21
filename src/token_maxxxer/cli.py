@@ -10,6 +10,8 @@ from pathlib import Path
 from token_maxxxer.config import load_config
 from token_maxxxer.credentials import resolve_credential
 from token_maxxxer.doctor import checks_as_dicts, diagnose
+from token_maxxxer.headless_cli import add_commands as add_headless_commands
+from token_maxxxer.headless_cli import execute as execute_headless_command
 from token_maxxxer.night_cli import add_commands
 from token_maxxxer.night_cli import execute as execute_night_command
 from token_maxxxer.provider_routing import generate_query, with_fallbacks
@@ -26,6 +28,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=Path)
     commands = parser.add_subparsers(dest="command")
     add_commands(parser, commands)
+    add_headless_commands(commands)
     doctor = commands.add_parser(
         "doctor", help="diagnose configuration without API requests or changes"
     )
@@ -52,6 +55,8 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _execute(arguments: argparse.Namespace) -> int:
+    if arguments.command == "headless":
+        return execute_headless_command(arguments)
     if arguments.command in (None, "night", "improve", "repos", "skills", "sessions"):
         return execute_night_command(arguments)
     config = load_config(arguments.config or Path("token_maxxxer.yaml"))
