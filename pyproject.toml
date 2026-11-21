@@ -12,6 +12,7 @@ license = "MIT"
 dependencies = [
   "anthropic>=0.75,<1",
   "httpx>=0.28,<1",
+  "langgraph>=1,<2",
   "openai>=2,<3",
   "pydantic>=2.11,<3",
   "PyYAML>=6.0.2,<7",

@@ -22,12 +22,30 @@ Python 3.11+, macOS and Linux. Providers: **Claude API**, **OpenAI API**,
 | Headless draft-PR delivery | `improve` or `night --publish-pr`; verified cycles, supervised commit/push, no automatic merge |
 | Codex CLI / GitHub Copilot SDK | Text-action adapters using native authentication; Copilot requires its optional extra |
 | Explicit provider fallback on exhausted credits | Configured order, preserved context, shared call/deadline limits |
+| LangGraph native headless skill jobs | Daily launchd/cron, subject rotation, baseline/identity checks, accumulating local review branch |
 | Execution of imported queue tasks | Planned; queue previews remain read-only |
-| Durable workflow, scheduling, and system services | Planned |
+| Durable workflow resume | Planned; daily headless jobs are available through launchd/cron |
 
 `query` returns generated text. It does not read or edit a repository, run local
 commands, or mark a task as successful. Tests use simulated responses and do not
 verify access to a real provider account or incur API charges.
+
+## Run a skill every evening
+
+Use a native Codex headless job for skills that need shell tools, large files
+and source research, such as `revue-cartes` in `Knowledge_Computer_Vision`.
+LangGraph supervises preparation, baseline checks, execution, verification and
+local commits. One subject runs per evening, with changes retained on a dedicated
+local branch for review.
+
+```bash
+uv run token_maxxxer headless run --job-file /private/path/job.yaml --dry-run
+uv run token_maxxxer headless launchd install --job-file /private/path/job.yaml
+```
+
+Configure the [example job](examples/headless-review.yaml) first. The
+[daily skill guide](docs/headless-skill-jobs.md) covers launchd/cron, timezones, reports,
+Anki identities and recovery. Nothing is pushed or merged automatically.
 
 ## Start an overnight session
 
@@ -208,6 +226,7 @@ src/token_maxxxer/
 ├── cli.py, doctor.py          # user commands and read-only diagnostics
 ├── repositories.py, skills.py # local discovery, recent paths and skill instructions
 ├── night.py, night_cli.py     # isolated overnight sessions and interactive selection
+├── headless*.py               # LangGraph native skills, verification and launchd/cron lifecycle
 ├── publication.py            # supervised commit, push and draft-PR delivery
 ├── commands.py               # bounded subprocesses and private runtime input
 ├── file_tools.py              # bounded file operations in the selected worktree
@@ -216,13 +235,14 @@ src/token_maxxxer/
 └── json_io.py, redaction.py   # strict JSON handling and credential redaction
 ```
 
-LangGraph, LangChain Core, and a graph checkpointer will be installed when the
-durable workflow is implemented, rather than kept as unused dependencies. The
-application database and future workflow checkpoints have separate configured
-locations.
+Native headless skill jobs use LangGraph for prepare/baseline/execute/verify/record
+nodes. The application database and future durable workflow checkpoints have
+separate configured locations. Durable checkpointer-based resume remains planned.
 
-Codex and Copilot use the same text `Provider` interface. Their own tools are
-disabled; the supervisor controls file access, verification and publication.
+The Codex and Copilot text adapters use the same `Provider` interface with their
+own tools disabled; the supervisor controls file access, verification and
+publication. Native `headless` jobs instead run Codex's repository tools inside
+its workspace-write sandbox and verify changes before local commits.
 Authentication stays in the official CLI/SDK. No private inference endpoint or
 OAuth credential extraction is used.
 
@@ -248,6 +268,7 @@ may use any language.
 | [docs/night-cli.md](docs/night-cli.md) | Overnight sessions: picker, explicit invocation, tool scope, limits, records and review |
 | [docs/providers.md](docs/providers.md) | Provider contract, result statuses, credentials and official API references |
 | [docs/headless-pr-agent.md](docs/headless-pr-agent.md) | Headless delivery, verification and draft-PR publication |
+| [docs/headless-skill-jobs.md](docs/headless-skill-jobs.md) | LangGraph native skills, daily cron, local review branches and Anki identity checks |
 | [docs/roadmap.md](docs/roadmap.md) | Milestones and remaining work |
 | [docs/checkpoint.md](docs/checkpoint.md) | Delivery history, rollback points, procedure and prototype migration |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development standards, checks, pull requests and rollbacks |

@@ -1,7 +1,42 @@
 # Checkpoints — token_maxxxer
 
-Updated November 7, 2026. This file records code deliveries, validation, merge
+Updated November 20, 2026. This file records code deliveries, validation, merge
 history, and rollback points. It does not replace future workflow checkpoints.
+
+## November 20 daily native skill jobs
+
+Added a LangGraph workflow for persistent native Codex skill jobs: prepare a
+dedicated local worktree, establish the baseline and inventory, execute the
+selected skill, verify approved paths/checks/identities, and commit accepted edits
+locally. Subjects rotate only after successful verification. Daily attempt
+markers prevent replay; deadlines and signal handling clean up subprocess groups.
+Failures preserve unverified work and stop further editing until inspection.
+No automatic push, merge or durable checkpoint recovery is implemented.
+
+`headless run`, `headless cron` and `headless launchd` provide previews, explicit
+execution and scheduler lifecycle. The macOS deployment uses a stable virtualenv
+installed from the built wheel and locked dependencies. Its user LaunchAgent
+checks the Europe/Paris start window every minute, beginning at 22:00, and
+retains a private scheduler heartbeat. Crontab installation was rejected by
+macOS with `Operation not permitted`; the LaunchAgent provides the requested
+daily execution without changing that permission.
+
+The selected target is `Knowledge_Computer_Vision`, using its committed
+`revue-cartes` skill in default deepen mode. Sixty subjects are ordered by the
+curriculum, with one subject per evening and a two-hour execution ceiling.
+New-card proposals remain pending for the learner. The isolated review branch
+was fast-forwarded to published commit `8dee529`; the original checkout was
+preserved. Operational baseline checks pass for 298 cards, including 71 export
+tests and the full identity inventory. A real native Codex call with the saved
+ChatGPT login and configured model returned the expected readiness response.
+These checks establish launch readiness, not a completed nightly enrichment or
+independent scientific review. Subject reports will be produced by the skill.
+
+Implementation validation: 326 automated tests pass, including native-process
+timeouts, SIGTERM cleanup, repeated-night accumulation, identity snapshots,
+timezone windows, duplicate suppression, cron preservation and LaunchAgent
+rollback. Ruff format/lint, strict mypy, the lockfile check and source/wheel
+builds pass. Tests use simulated agents and do not invoke real model accounts.
 
 ## November 7 provider fallback
 
@@ -104,7 +139,7 @@ has been retired. Historical implementations remain available in Git.
 | 2 — API generation | Implemented | Claude/OpenAI adapters; Copilot not yet implemented |
 | 3 — Code tools and isolation | Partly implemented | Foreground night sessions, typed tools, worktrees and approved checks; imported-task execution remains gated |
 | Interactive overnight CLI | Implemented | Local discovery/history, skill picker, bounded cycles and private reports; simulated providers only |
-| 4–7 | Planned | Durable workflow/recovery, schedule windows, services and real-account pilots |
+| 4–7 | Partly implemented | Native LangGraph jobs and daily launchd/cron; durable recovery and imported-task scheduling remain planned |
 
 Text generation does not verify or complete a Git task. Tests use fictional
 credentials and simulated HTTP without billed calls. Repository documentation,

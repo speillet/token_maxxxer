@@ -1,0 +1,34 @@
+# Copy outside the target repository and replace these paths before execution.
+schema_version: 1
+name: knowledge-cards
+repository: /absolute/path/to/Knowledge_Computer_Vision
+skill_file: /absolute/path/to/Knowledge_Computer_Vision/.agents/skills/revue-cartes/SKILL.md
+state_directory: /absolute/private/path/to/knowledge-cards
+codex_binary: /absolute/path/to/codex
+model: YOUR_CODEX_MODEL
+timezone: Europe/Paris
+daily_at: '22:00'
+latest_start_minutes: 60
+timeout_seconds: 7200
+check_timeout_seconds: 600
+subjects:
+  - vault/20-acquisition-images/21-exposition-bruit-echantillonnage.md
+write_paths:
+  - vault/**/*.md
+  - docs/revues/*.md
+inventory_command:
+  - /absolute/path/to/uv
+  - run
+  - --no-project
+  - --with
+  - genanki==0.13.1
+  - python
+  - .agents/skills/revue-cartes/scripts/inventaire_cartes.py
+  - vault
+  - --json
+verification_commands:
+  - [/absolute/path/to/python, scripts/check_vault.py]
+  - [/absolute/path/to/python, scripts/sync_catalog.py, --check]
+  - [/absolute/path/to/python, scripts/learning_path.py]
+  - [/absolute/path/to/uv, run, --no-project, --with, 'genanki==0.13.1', python, -m, unittest, discover, -s, tests]
+  - [/absolute/path/to/uv, run, --no-project, --with, 'genanki==0.13.1', python, .agents/skills/revue-cartes/scripts/inventaire_cartes.py, vault, --compare, '{inventory_before}']
