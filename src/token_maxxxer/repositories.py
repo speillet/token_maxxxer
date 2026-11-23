@@ -22,6 +22,21 @@ def git(
     allowed_returncodes: tuple[int, ...] = (0,),
 ) -> str:
     """Run a fixed Git operation without hooks, prompting, a shell or user-facing stderr."""
+    try:
+        return git_output(
+            repository, *arguments, timeout=timeout, allowed_returncodes=allowed_returncodes
+        ).decode("utf-8")
+    except UnicodeError as exc:
+        raise ValueError("Git is unavailable or the local repository cannot be read") from exc
+
+
+def git_output(
+    repository: Path,
+    *arguments: str,
+    timeout: float = 15,
+    allowed_returncodes: tuple[int, ...] = (0,),
+) -> bytes:
+    """Like `git`, but return raw bytes for patches and file contents."""
     environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
     environment.update(GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0")
     try:
@@ -45,8 +60,8 @@ def git(
         )
         if result.returncode not in allowed_returncodes:
             raise ValueError("Git operation failed; check the repository and branch state")
-        return result.stdout.decode("utf-8")
-    except (OSError, subprocess.TimeoutExpired, UnicodeError) as exc:
+        return result.stdout
+    except (OSError, subprocess.TimeoutExpired) as exc:
         raise ValueError("Git is unavailable or the local repository cannot be read") from exc
 
 
