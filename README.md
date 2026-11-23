@@ -23,6 +23,7 @@ Python 3.11+, macOS and Linux. Providers: **Claude API**, **OpenAI API**,
 | Codex CLI / GitHub Copilot SDK | Text-action adapters using native authentication; Copilot requires its optional extra |
 | Explicit provider fallback on exhausted credits | Configured order, preserved context, shared call/deadline limits |
 | LangGraph native headless skill jobs | Daily launchd/cron, subject rotation, baseline/identity checks, accumulating local review branch |
+| Overnight roadmap autopilot | Parallel native agents: roadmap milestones, then trusted issues, then maintenance passes; verified local commits |
 | Execution of imported queue tasks | Planned; queue previews remain read-only |
 | Durable workflow resume | Planned; daily headless jobs are available through launchd/cron |
 
@@ -46,6 +47,27 @@ uv run token_maxxxer headless launchd install --job-file /private/path/job.yaml
 Configure the [example job](examples/headless-review.yaml) first. The
 [daily skill guide](docs/headless-skill-jobs.md) covers launchd/cron, timezones, reports,
 Anki identities and recovery. Nothing is pushed or merged automatically.
+
+## Work through a roadmap overnight
+
+`autopilot` keeps one or more native Codex agents busy until morning. Agents
+implement open roadmap items milestone by milestone, then fix GitHub issues from
+trusted labels or authors. After that, they rotate through security, tests,
+coverage, refactoring, relevance and documentation passes. Each agent works in
+parallel on its own dated branch. Every change is checked for protected paths
+and secrets, then the approved checks run. Accepted work is committed locally and
+the roadmap item is checked off. Rejected work is saved as a patch so the night
+continues.
+
+```bash
+uv run token_maxxxer autopilot run --job-file /private/path/night.yaml --dry-run
+uv run token_maxxxer autopilot launchd install --job-file /private/path/night.yaml
+uv run token_maxxxer autopilot status --job-file /private/path/night.yaml
+```
+
+Start from the [example job](examples/autopilot.yaml). The [autopilot
+guide](docs/autopilot.md) covers work sources, retries, the morning report and
+trust boundaries. Nothing is pushed or merged automatically.
 
 ## Start an overnight session
 
@@ -227,6 +249,8 @@ src/token_maxxxer/
 ├── repositories.py, skills.py # local discovery, recent paths and skill instructions
 ├── night.py, night_cli.py     # isolated overnight sessions and interactive selection
 ├── headless*.py               # LangGraph native skills, verification and launchd/cron lifecycle
+├── autopilot*.py, roadmap.py  # parallel overnight agents on roadmap items, issues and maintenance
+├── scheduling.py              # shared daily windows and no-replay attempt markers
 ├── publication.py            # supervised commit, push and draft-PR delivery
 ├── commands.py               # bounded subprocesses and private runtime input
 ├── file_tools.py              # bounded file operations in the selected worktree
@@ -269,6 +293,7 @@ may use any language.
 | [docs/providers.md](docs/providers.md) | Provider contract, result statuses, credentials and official API references |
 | [docs/headless-pr-agent.md](docs/headless-pr-agent.md) | Headless delivery, verification and draft-PR publication |
 | [docs/headless-skill-jobs.md](docs/headless-skill-jobs.md) | LangGraph native skills, daily cron, local review branches and Anki identity checks |
+| [docs/autopilot.md](docs/autopilot.md) | Overnight roadmap autopilot: parallel agents, issues, maintenance, retries and morning review |
 | [docs/roadmap.md](docs/roadmap.md) | Milestones and remaining work |
 | [docs/checkpoint.md](docs/checkpoint.md) | Delivery history, rollback points, procedure and prototype migration |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development standards, checks, pull requests and rollbacks |

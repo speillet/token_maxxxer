@@ -1,0 +1,46 @@
+# Copy outside the target repository and replace these paths before execution.
+# Each agent works on its own dated branch; nothing is pushed or merged.
+schema_version: 1
+name: my-project
+repository: /absolute/path/to/my-project
+state_directory: /absolute/private/path/to/autopilot-state
+codex_binary: /absolute/path/to/codex
+
+# One lane per agent, running in parallel. A lane may restrict its sources.
+agents:
+  - name: builder
+    model: YOUR_CODEX_MODEL
+  - name: keeper
+    model: YOUR_CODEX_MODEL
+    sources: [issues, maintenance]
+
+# Work order: open roadmap items, then trusted issues, then maintenance passes.
+sources: [roadmap, issues, maintenance]
+roadmap_file: docs/roadmap.md # default: ROADMAP.md, docs/roadmap.md, docs/ROADMAP.md, roadmap.md
+issues:
+  labels: [autopilot] # every label must be present
+  authors: [your-github-login] # only these authors' issues reach the agents
+  limit: 20
+maintenance_focuses: [security, tests, coverage, refactor, relevance, docs]
+
+# Start between 22:00 and 23:00 Europe/Paris; stop at 07:00 or after 9 hours.
+timezone: Europe/Paris
+daily_at: '22:00'
+latest_start_minutes: 60
+stop_at: '07:00'
+max_hours: 9
+task_timeout_seconds: 3600
+check_timeout_seconds: 900
+minimum_task_seconds: 900
+max_tasks: 40
+max_attempts: 3
+max_consecutive_failures: 3
+
+# fnmatch patterns: `*` also matches `/`. The roadmap file is always protected.
+write_paths: ['*']
+protected_paths: ['.github/*', AGENTS.md, CLAUDE.md, '.agents/*', '.claude/*', '.codex/*']
+allow_deletions: true
+tick_roadmap: true
+verification_commands:
+  - [/absolute/path/to/uv, run, ruff, check]
+  - [/absolute/path/to/uv, run, pytest, -q]

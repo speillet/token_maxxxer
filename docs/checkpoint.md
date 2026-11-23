@@ -1,7 +1,47 @@
 # Checkpoints — token_maxxxer
 
-Updated November 20, 2026. This file records code deliveries, validation, merge
+Updated November 24, 2026. This file records code deliveries, validation, merge
 history, and rollback points. It does not replace future workflow checkpoints.
+
+## November 24 overnight roadmap autopilot
+
+Added `autopilot`, which keeps up to four native Codex agents working until a
+local stop time. Each agent has its own lane: a dated branch and worktree. Work
+comes from open roadmap checklist items, milestone by milestone. Next come open
+GitHub issues matching configured trusted labels or authors. Last come rotating
+maintenance passes: security, tests, coverage, refactoring, relevance, docs and
+performance. Maintenance stops after a full rotation without a commit.
+
+A LangGraph loop per lane selects, executes, verifies and records each cycle.
+The supervisor rejects edits to protected paths and the roadmap, paths outside
+`write_paths`, credential-like files, symlinks, submodules and large files. It
+also rejects added secret values and changes that fail checks or modify the
+worktree. Rejected work is kept as a private patch and the worktree is reset.
+Accepted work becomes a local Conventional Commit, and completed roadmap items
+are checked off. Progress tracks attempts, continues unmerged lane branches and
+reopens done items whose branch was deleted unmerged. A Markdown report and a
+JSON record summarize each night.
+
+Shared scheduling code now serves headless jobs and autopilot nights. Existing
+headless cron markers and LaunchAgent labels are unchanged. `run_command`
+accepts a cancellation event, so SIGTERM and the deadline stop every lane's
+process group. Lane completion uses events instead of `Thread.join`: a signal
+interrupting `join` can mark a running thread as stopped (bpo-45274).
+
+Implementation validation: 383 automated tests pass. They cover:
+- roadmap parsing;
+- ordered multi-night progress and branch continuation;
+- parallel lanes;
+- rejected changes and saved patches;
+- partial work and retries;
+- agent failure limits;
+- trusted issue filtering;
+- deadlines, SIGTERM cleanup, previews and scheduler installation.
+
+Ruff format/lint, strict mypy and source/wheel builds pass. Tests use simulated
+Codex and `gh` executables. No real model account or GitHub API was used, and
+the Codex CLI is not installed on the development machine. A complete night on
+a real account remains to be qualified. No automatic push or merge exists.
 
 ## November 20 daily native skill jobs
 

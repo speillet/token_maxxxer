@@ -678,3 +678,11 @@ def test_autopilot_launchagent_runs_the_autopilot_command(make_job, tmp_path, mo
     assert plist["ProgramArguments"][3:5] == ["autopilot", "run"]
     assert plist["ProgramArguments"][-1] == "--scheduled"
     assert str(job.codex_binary.parent) in plist["EnvironmentVariables"]["PATH"]
+
+
+def test_example_job_is_valid():
+    job = load_autopilot_job(Path(__file__).parents[1] / "examples/autopilot.yaml")
+    assert [agent.name for agent in job.agents] == ["builder", "keeper"]
+    assert job.lane_sources(job.agents[0]) == ("roadmap", "issues", "maintenance")
+    assert job.lane_sources(job.agents[1]) == ("issues", "maintenance")
+    assert job.issues is not None and job.issues.authors == ("your-github-login",)
