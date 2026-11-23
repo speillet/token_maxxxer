@@ -394,3 +394,31 @@ def test_launchagent_rejects_unsupported_platform(job, tmp_path, monkeypatch):
     monkeypatch.setattr(service.sys, "platform", "linux")
     with pytest.raises(ValueError, match="only on macOS"):
         service.manage_launchd(job, tmp_path / "job.yaml", "install")
+
+
+def test_scheduler_kinds_use_distinct_markers_labels_and_commands(job, tmp_path, monkeypatch):
+    import token_maxxxer.headless_cron as cron
+    from token_maxxxer.headless_launchd import launchagent
+
+    assert cron.marker_name(job) == "cards"
+    assert cron.marker_name(job, "autopilot") == "autopilot:cards"
+    with pytest.raises(ValueError, match="unsupported"):
+        cron.marker_name(job, "other")
+    service = launchagent(job, tmp_path / "job.yaml", "autopilot")
+    assert service["Label"] == "com.token-maxxxer.autopilot.cards"
+    assert service["ProgramArguments"][3:5] == ["autopilot", "run"]
+    contents = [""]
+    monkeypatch.setattr(cron, "_read_crontab", lambda: contents[0])
+
+    def write(command, **kwargs):
+        contents[0] = kwargs["input"]
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(cron.subprocess, "run", write)
+    cron.manage_cron(job, tmp_path / "job.yaml", "install")
+    cron.manage_cron(job, tmp_path / "night.yaml", "install", "autopilot")
+    assert " autopilot run " in contents[0] and " headless run " in contents[0]
+    assert cron.manage_cron(job, tmp_path / "night.yaml", "status", "autopilot")["installed"]
+    cron.manage_cron(job, tmp_path / "job.yaml", "remove")
+    assert "# BEGIN token_maxxxer:cards" not in contents[0]
+    assert "# BEGIN token_maxxxer:autopilot:cards" in contents[0]

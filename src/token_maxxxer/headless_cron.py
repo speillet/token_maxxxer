@@ -8,8 +8,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-from token_maxxxer.headless import HeadlessJob
 from token_maxxxer.local_state import read_record, write_private_text
+from token_maxxxer.scheduling import ScheduledJob
+
+# Scheduled job kinds map to their `token_maxxxer KIND run --scheduled` command.
+JOB_KINDS = ("headless", "autopilot")
 
 
 def _read_crontab() -> str:
@@ -28,11 +31,11 @@ def _read_crontab() -> str:
     raise ValueError("cannot read the user crontab; no changes were made")
 
 
-def scheduled_environment(job: HeadlessJob) -> dict[str, str]:
+def scheduled_environment(job: ScheduledJob) -> dict[str, str]:
     if any(char in os.environ.get("PATH", "") for char in "\n\r\x00"):
         raise ValueError("cron paths and environment must not contain control characters")
     directories = [str(Path(sys.executable).parent), str(job.codex_binary.parent)]
-    commands = (*job.verification_commands, job.inventory_command, ("uv",), ("git",))
+    commands = (*job.tool_commands(), ("uv",), ("git",), ("gh",))
     for tool_command in commands:
         if tool_command and (executable := shutil.which(tool_command[0])):
             directories.append(str(Path(executable).parent))
@@ -48,9 +51,21 @@ def scheduled_environment(job: HeadlessJob) -> dict[str, str]:
     return environment
 
 
-def cron_block(job: HeadlessJob, job_file: Path) -> str:
+def _kind(kind: str) -> str:
+    if kind not in JOB_KINDS:
+        raise ValueError("unsupported scheduled job kind")
+    return kind
+
+
+def marker_name(job: ScheduledJob, kind: str = "headless") -> str:
+    # Headless keeps its original marker so existing installations remain removable.
+    return job.name if _kind(kind) == "headless" else f"{kind}:{job.name}"
+
+
+def cron_block(job: ScheduledJob, job_file: Path, kind: str = "headless") -> str:
     # Keep the virtualenv path: resolving its Python symlink loses installed packages.
     environment = [f"{name}={value}" for name, value in scheduled_environment(job).items()]
+    name = marker_name(job, kind)
     command = shlex.join(
         [
             "/usr/bin/env",
@@ -58,7 +73,7 @@ def cron_block(job: HeadlessJob, job_file: Path) -> str:
             str(Path(sys.executable).absolute()),
             "-m",
             "token_maxxxer",
-            "headless",
+            kind,
             "run",
             "--job-file",
             str(job_file.expanduser().resolve()),
@@ -71,10 +86,10 @@ def cron_block(job: HeadlessJob, job_file: Path) -> str:
     # Cron treats percent signs specially even inside shell quotes.
     command = command.replace("%", "\\%")
     return (
-        f"# BEGIN token_maxxxer:{job.name}\n"
+        f"# BEGIN token_maxxxer:{name}\n"
         f"# Daily at {job.daily_at} {job.timezone}; Python gates timezone and duplicate attempts.\n"
         f"* * * * * {command}\n"
-        f"# END token_maxxxer:{job.name}\n"
+        f"# END token_maxxxer:{name}\n"
     )
 
 
@@ -90,9 +105,12 @@ def replace_block(current: str, name: str, block: str) -> str:
     return remaining + ("\n" if remaining and not remaining.endswith("\n") else "") + block
 
 
-def manage_cron(job: HeadlessJob, job_file: Path, action: str) -> dict[str, object]:
+def manage_cron(
+    job: ScheduledJob, job_file: Path, action: str, kind: str = "headless"
+) -> dict[str, object]:
+    name = marker_name(job, kind)
     current = _read_crontab()
-    installed = f"# BEGIN token_maxxxer:{job.name}" in current.splitlines()
+    installed = f"# BEGIN token_maxxxer:{name}" in current.splitlines()
     if action == "status":
         return {
             "installed": installed,
@@ -104,8 +122,8 @@ def manage_cron(job: HeadlessJob, job_file: Path, action: str) -> dict[str, obje
             if (job.state_directory / "last-tick.json").exists()
             else None,
         }
-    block = cron_block(job, job_file) if action == "install" else ""
-    updated = replace_block(current, job.name, block)
+    block = cron_block(job, job_file, kind) if action == "install" else ""
+    updated = replace_block(current, name, block)
     if updated != current:
         write_private_text(job.state_directory / "previous-crontab.txt", current)
         result = subprocess.run(
