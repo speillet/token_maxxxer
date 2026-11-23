@@ -4,6 +4,7 @@ import sys
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -571,3 +572,109 @@ def test_issue_source_requires_a_trusted_filter(make_job, change, message):
     document = make_job().model_dump(mode="json")
     with pytest.raises(ValueError, match=message):
         AutopilotJob.model_validate({**document, **change})
+
+
+def write_job_file(job: AutopilotJob, path: Path) -> Path:
+    path.write_text(job.model_dump_json())
+    return path
+
+
+def test_cli_preview_and_scheduled_skip_write_only_the_heartbeat(make_job, tmp_path, capsys):
+    from token_maxxxer.cli import main
+
+    job = make_job()
+    job_file = write_job_file(job, tmp_path / "night.json")
+    assert main(["autopilot", "run", "--job-file", str(job_file), "--dry-run"]) == 0
+    preview = json.loads(capsys.readouterr().out)
+    assert preview["status"] == "preview" and len(preview["next_roadmap_items"]) == 3
+    assert not job.state_directory.exists()
+    today = datetime.now(UTC).astimezone(ZoneInfo(job.timezone)).date()
+    for day in (today, today - timedelta(days=1)):
+        marker = job.state_directory / "runs" / day.isoformat() / "attempted"
+        marker.parent.mkdir(parents=True)
+        marker.touch()
+    assert main(["autopilot", "run", "--job-file", str(job_file), "--scheduled"]) == 0
+    assert "checked_at" in read_record(job.state_directory / "last-tick.json")
+    assert not (job.state_directory / "progress.json").exists()
+
+
+def test_cli_run_prints_a_compact_summary_and_status_reads_it(make_job, tmp_path, capsys):
+    from token_maxxxer.cli import main
+
+    job = make_job(max_tasks=2)
+    job_file = write_job_file(job, tmp_path / "night.json")
+    assert main(["autopilot", "run", "--job-file", str(job_file)]) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["status"] == "completed"
+    assert summary["cycles"] == {"committed": 2}
+    assert summary["lanes"][0]["commits"] == 2
+    assert Path(summary["report"]).is_file()
+    assert "checks" not in json.dumps(summary)
+    assert main(["autopilot", "status", "--job-file", str(job_file)]) == 0
+    status = json.loads(capsys.readouterr().out)
+    assert status["nights"] == 1
+    assert status["items"] == {"done": 2}
+    assert status["latest"]["lanes"][0]["branch"] == summary["lanes"][0]["branch"]
+
+
+def test_sigterm_stops_agents_records_interruption_and_keeps_their_work(make_job, tmp_path):
+    import signal
+    import subprocess
+
+    pid_file = tmp_path / "agent.pid"
+    job = make_job(
+        "Path('work-in-progress.txt').write_text('partial')\n"
+        f"Path({str(pid_file)!r}).write_text(str(os.getpid()))\ntime.sleep(60)\n"
+    )
+    job_file = write_job_file(job, tmp_path / "night.json")
+    child = subprocess.Popen(
+        [sys.executable, "-m", "token_maxxxer", "autopilot", "run", "--job-file", str(job_file)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    try:
+        deadline = time.monotonic() + 20
+        while not pid_file.exists() and child.poll() is None and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert pid_file.exists(), child.communicate(timeout=5)
+        child.send_signal(signal.SIGTERM)
+        out, err = child.communicate(timeout=10)
+        assert child.returncode == 130, (out, err)
+        summary = json.loads(out)
+        assert summary["status"] == "interrupted"
+        lane = summary["lanes"][0]
+        assert (lane["status"], lane["reason"]) == ("stopped", "interrupted_by_signal")
+        assert lane["worktree_retained"]
+        assert summary["cycles"] == {"interrupted": 1}
+        with pytest.raises(ProcessLookupError):
+            os.kill(int(pid_file.read_text()), 0)
+    finally:
+        if child.poll() is None:
+            child.kill()
+        child.wait()
+
+
+def test_autopilot_launchagent_runs_the_autopilot_command(make_job, tmp_path, monkeypatch):
+    import plistlib
+
+    import token_maxxxer.headless_launchd as service
+
+    monkeypatch.setattr(service.sys, "platform", "darwin")
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    loaded = [False]
+
+    def launchctl(*arguments, required=True):
+        if arguments[0] in ("bootstrap", "bootout"):
+            loaded[0] = arguments[0] == "bootstrap"
+        return loaded[0]
+
+    monkeypatch.setattr(service, "_launchctl", launchctl)
+    job = make_job()
+    installed = service.manage_launchd(job, tmp_path / "night.yaml", "install", "autopilot")
+    assert installed["label"] == "com.token-maxxxer.autopilot.demo" and installed["loaded"]
+    plist = plistlib.loads(
+        (tmp_path / "Library/LaunchAgents/com.token-maxxxer.autopilot.demo.plist").read_bytes()
+    )
+    assert plist["ProgramArguments"][3:5] == ["autopilot", "run"]
+    assert plist["ProgramArguments"][-1] == "--scheduled"
+    assert str(job.codex_binary.parent) in plist["EnvironmentVariables"]["PATH"]
