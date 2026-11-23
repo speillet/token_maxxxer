@@ -6,20 +6,26 @@ import subprocess
 import sys
 from pathlib import Path
 
-from token_maxxxer.headless import HeadlessJob
-from token_maxxxer.headless_cron import scheduled_environment
+from token_maxxxer.headless_cron import JOB_KINDS, scheduled_environment
 from token_maxxxer.local_state import read_record, write_private_text
 from token_maxxxer.redaction import redact
+from token_maxxxer.scheduling import ScheduledJob
 
 
-def launchagent(job: HeadlessJob, job_file: Path) -> dict[str, object]:
+def label(job: ScheduledJob, kind: str = "headless") -> str:
+    if kind not in JOB_KINDS:
+        raise ValueError("unsupported scheduled job kind")
+    return f"com.token-maxxxer.{kind}.{job.name}"
+
+
+def launchagent(job: ScheduledJob, job_file: Path, kind: str = "headless") -> dict[str, object]:
     return {
-        "Label": f"com.token-maxxxer.headless.{job.name}",
+        "Label": label(job, kind),
         "ProgramArguments": [
             str(Path(sys.executable).absolute()),
             "-m",
             "token_maxxxer",
-            "headless",
+            kind,
             "run",
             "--job-file",
             str(job_file.expanduser().resolve()),
@@ -47,13 +53,15 @@ def _launchctl(*arguments: str, required: bool = True) -> bool:
     return result.returncode == 0
 
 
-def manage_launchd(job: HeadlessJob, job_file: Path, action: str) -> dict[str, object]:
+def manage_launchd(
+    job: ScheduledJob, job_file: Path, action: str, kind: str = "headless"
+) -> dict[str, object]:
     if sys.platform != "darwin":
-        raise ValueError("launchd scheduling is available only on macOS; use headless cron")
-    label = f"com.token-maxxxer.headless.{job.name}"
+        raise ValueError(f"launchd scheduling is available only on macOS; use {kind} cron")
+    service = label(job, kind)
     domain = f"gui/{os.getuid()}"
-    target = f"{domain}/{label}"
-    path = Path.home() / "Library/LaunchAgents" / f"{label}.plist"
+    target = f"{domain}/{service}"
+    path = Path.home() / "Library/LaunchAgents" / f"{service}.plist"
     loaded = _launchctl("print", target, required=False)
     if action != "status":
         previous = path.read_text(encoding="utf-8") if path.exists() else None
@@ -65,7 +73,7 @@ def manage_launchd(job: HeadlessJob, job_file: Path, action: str) -> dict[str, o
             path.unlink(missing_ok=True)
         else:
             job.state_directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-            content = plistlib.dumps(launchagent(job, job_file)).decode("utf-8")
+            content = plistlib.dumps(launchagent(job, job_file, kind)).decode("utf-8")
             write_private_text(path, content)
             try:
                 _launchctl("bootstrap", domain, str(path))
@@ -81,7 +89,7 @@ def manage_launchd(job: HeadlessJob, job_file: Path, action: str) -> dict[str, o
     return {
         "installed": path.exists(),
         "loaded": loaded,
-        "label": label,
+        "label": service,
         "daily_at": job.daily_at,
         "timezone": job.timezone,
         "job_file": str(job_file.resolve()),

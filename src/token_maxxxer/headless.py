@@ -5,10 +5,9 @@ import json
 import os
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Literal, TypedDict
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from langgraph.graph import END, START, StateGraph
 from pydantic import Field, field_validator, model_validator
@@ -22,8 +21,39 @@ from token_maxxxer.models import CommandArgument, Model, TaskId, Text, resolve_p
 from token_maxxxer.night import _DeadlineReached, _repository_lock, _signals
 from token_maxxxer.redaction import redact
 from token_maxxxer.repositories import git, repository_root
+from token_maxxxer.scheduling import claim_attempt, run_date, scheduled_date, valid_timezone
 from token_maxxxer.skills import load_skill
 from token_maxxxer.yaml_io import load_yaml
+
+__all__ = ["HeadlessJob", "codex_exec_command", "load_job", "run_headless", "scheduled_date"]
+
+
+def codex_exec_command(binary: Path, model: str) -> tuple[str, ...]:
+    """Native Codex in its workspace sandbox, without approvals or extension features."""
+    return (
+        str(binary),
+        "exec",
+        "--ephemeral",
+        "--sandbox",
+        "workspace-write",
+        "--color",
+        "never",
+        "--model",
+        model,
+        "-c",
+        'approval_policy="never"',
+        "-c",
+        'web_search="live"',
+        "-c",
+        "features.multi_agent=false",
+        "-c",
+        "features.hooks=false",
+        "-c",
+        "features.apps=false",
+        "-c",
+        "features.plugins=false",
+        "-",
+    )
 
 
 class HeadlessJob(Model):
@@ -51,14 +81,7 @@ class HeadlessJob(Model):
         resolve_path
     )
 
-    @field_validator("timezone")
-    @classmethod
-    def valid_timezone(cls, value: str) -> str:
-        try:
-            ZoneInfo(value)
-        except (ValueError, ZoneInfoNotFoundError) as error:
-            raise ValueError("unknown IANA timezone") from error
-        return value
+    _valid_timezone = field_validator("timezone")(valid_timezone)
 
     @field_validator("subjects", "write_paths")
     @classmethod
@@ -86,24 +109,13 @@ class HeadlessJob(Model):
             raise ValueError("commands must not contain NUL")
         return self
 
+    def tool_commands(self) -> tuple[tuple[str, ...], ...]:
+        return (*self.verification_commands, self.inventory_command)
+
 
 def load_job(path: Path) -> HeadlessJob:
     path = path.expanduser().resolve()
     return HeadlessJob.model_validate(load_yaml(path), context={"base_directory": path.parent})
-
-
-def scheduled_date(job: HeadlessJob, now: datetime) -> str | None:
-    """Find the daily window in IANA time, including a window crossing midnight."""
-    if now.tzinfo is None:
-        raise ValueError("the schedule clock must be timezone-aware")
-    local = now.astimezone(ZoneInfo(job.timezone))
-    hour, minute = map(int, job.daily_at.split(":"))
-    for day in (local.date(), local.date() - timedelta(days=1)):
-        opening = datetime(day.year, day.month, day.day, hour, minute, tzinfo=local.tzinfo)
-        elapsed = local.timestamp() - opening.timestamp()
-        if 0 <= elapsed < job.latest_start_minutes * 60:
-            return day.isoformat()
-    return None
 
 
 class _GraphState(TypedDict):
@@ -263,30 +275,7 @@ class _Run:
 
     def execute(self, state: _GraphState) -> _GraphState:
         self.save("running")
-        command = (
-            str(self.job.codex_binary),
-            "exec",
-            "--ephemeral",
-            "--sandbox",
-            "workspace-write",
-            "--color",
-            "never",
-            "--model",
-            self.job.model,
-            "-c",
-            'approval_policy="never"',
-            "-c",
-            'web_search="live"',
-            "-c",
-            "features.multi_agent=false",
-            "-c",
-            "features.hooks=false",
-            "-c",
-            "features.apps=false",
-            "-c",
-            "features.plugins=false",
-            "-",
-        )
+        command = codex_exec_command(self.job.codex_binary, self.job.model)
         # Raw tool events and source contents are transient, not persisted in job logs.
         self.command(command, agent=True)
         return self.save("agent_completed")
@@ -395,14 +384,7 @@ class _Run:
 def run_headless(
     job: HeadlessJob, *, scheduled: bool = False, now: datetime | None = None, dry_run: bool = False
 ) -> dict[str, object]:
-    now = now or utc_now()
-    if now.tzinfo is None:
-        raise ValueError("the schedule clock must be timezone-aware")
-    date = (
-        scheduled_date(job, now)
-        if scheduled
-        else now.astimezone(ZoneInfo(job.timezone)).date().isoformat()
-    )
+    date = run_date(job, now or utc_now(), scheduled=scheduled)
     if date is None:
         return {"status": "skipped", "reason": "outside_start_window"}
     if dry_run:
@@ -411,12 +393,6 @@ def run_headless(
     if (directory / "attempted").exists():
         return {"status": "skipped", "reason": "already_attempted", "date": date}
     with _repository_lock(repository_root(job.repository)):
-        directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-        try:
-            descriptor = os.open(
-                directory / "attempted", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
-            )
-        except FileExistsError:
+        if not claim_attempt(directory):
             return {"status": "skipped", "reason": "already_attempted", "date": date}
-        os.close(descriptor)
         return _Run(job, date).run()

@@ -5,6 +5,7 @@ import selectors
 import signal
 import subprocess
 import tempfile
+import threading
 import time
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
@@ -19,6 +20,7 @@ class CommandResult:
     output: bytes = b""
     timed_out: bool = False
     truncated: bool = False
+    cancelled: bool = False
 
 
 def _terminate_group(process: subprocess.Popen[bytes]) -> None:
@@ -42,7 +44,9 @@ def run_command(
     max_output_bytes: int = 262_144,
     combine_stderr: bool = False,
     input_bytes: bytes | None = None,
+    cancel: threading.Event | None = None,
 ) -> CommandResult:
+    """Run without a shell; a set `cancel` event stops the whole process group promptly."""
     # An anonymous file avoids pipe deadlocks for large prompts and keeps them
     # out of argv, the environment and named files/session journals.
     with tempfile.TemporaryFile() as incoming:
@@ -57,6 +61,7 @@ def run_command(
             max_output_bytes,
             combine_stderr,
             incoming if input_bytes is not None else subprocess.DEVNULL,
+            cancel,
         )
 
 
@@ -68,7 +73,10 @@ def _run_command(
     max_output_bytes: int,
     combine_stderr: bool,
     incoming: BinaryIO | int,
+    cancel: threading.Event | None,
 ) -> CommandResult:
+    if cancel is not None and cancel.is_set():
+        return CommandResult(exit_code=None, cancelled=True)
     try:
         process = subprocess.Popen(
             command,
@@ -82,13 +90,16 @@ def _run_command(
     except OSError:
         return CommandResult(exit_code=None)
     captured = bytearray()
-    truncated = timed_out = False
+    truncated = timed_out = cancelled = False
     started = time.monotonic()
     assert process.stdout is not None
     try:
         with selectors.DefaultSelector() as selector:
             selector.register(process.stdout, selectors.EVENT_READ)
             while selector.get_map():
+                if cancel is not None and cancel.is_set():
+                    cancelled = True
+                    break
                 if time.monotonic() - started >= timeout:
                     timed_out = True
                     break
@@ -102,12 +113,17 @@ def _run_command(
                     remaining = max_output_bytes - len(captured)
                     captured.extend(chunk[:remaining])
                     truncated = truncated or len(chunk) > remaining
-            if process.poll() is None and not timed_out:
-                try:
-                    process.wait(timeout=max(0.001, timeout - (time.monotonic() - started)))
-                except subprocess.TimeoutExpired:
+            while process.poll() is None and not (timed_out or cancelled):
+                if cancel is not None and cancel.is_set():
+                    cancelled = True
+                    break
+                left = timeout - (time.monotonic() - started)
+                if left <= 0:
                     timed_out = True
+                    break
+                with suppress(subprocess.TimeoutExpired):
+                    process.wait(timeout=min(0.1, left))
     finally:
         _terminate_group(process)
         process.stdout.close()
-    return CommandResult(process.returncode, bytes(captured), timed_out, truncated)
+    return CommandResult(process.returncode, bytes(captured), timed_out, truncated, cancelled)

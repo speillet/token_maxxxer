@@ -1,8 +1,9 @@
 # Roadmap — token_maxxxer
 
-Updated November 20, 2026. `token_maxxxer` supports Claude/OpenAI APIs, Codex CLI
+Updated November 24, 2026. `token_maxxxer` supports Claude/OpenAI APIs, Codex CLI
 login and the optional official Copilot SDK. Explicit fallback chains preserve
-context and session limits across exhausted provider allocations.
+context and session limits across exhausted provider allocations. The overnight
+autopilot runs parallel native agents on this kind of roadmap.
 Progress, merge history, and rollback points live in [checkpoint.md](checkpoint.md).
 
 ## 0 — Provider contracts and account access
@@ -71,6 +72,22 @@ automatically. The
 original queue's stable task branches and acceptance workflow remain separate
 work. Skills use the supported typed tools; external plugins and arbitrary shell
 commands are not installed or executed. See [the session contract](night-cli.md).
+
+### Overnight roadmap autopilot
+
+- [x] Parse Markdown roadmap milestones and checkbox items with stable keys.
+- [x] Run up to four native agents in parallel lanes with dated branches and worktrees.
+- [x] Work through roadmap items, then trusted GitHub issues, then rotating maintenance passes.
+- [x] Reject protected, unapproved, credential-like and secret-bearing changes before checks.
+- [x] Save rejected work as private patches and keep the night running.
+- [x] Record attempts, continue unmerged branches and reopen abandoned work.
+- [x] Schedule nights through launchd/cron and stop agents at the local stop time.
+- [ ] Qualify a complete night with a real Codex account on a demonstration repository.
+
+The autopilot commits verified work locally and checks off completed roadmap
+items. It never pushes, opens pull requests or merges. Parallel lanes avoid
+working on the same item but can still produce conflicting branches. See
+[the autopilot guide](autopilot.md).
 
 ## 4 — Durable workflow and recovery
 
